@@ -1,1 +1,1 @@
-include(":maps-api-key-plugin", ":sample-app")
+include(":gmp-api-key-provider", ":sample-app")

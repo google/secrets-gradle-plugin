@@ -18,6 +18,7 @@ android {
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        //manifestPlaceholders["mapsApiKey"] = "hehe"
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -74,9 +75,12 @@ class MapsApiKeyProviderTest : Plugin<Project> {
             properties.load(propertiesFile.inputStream())
 
             // Read API key
+            println("Reading API Key")
             val apiKey = properties.getProperty(extension.propertyKey, "")
-            project.extensions.findByType<com.android.build.gradle.AppExtension>()
-                ?.defaultConfig?.manifestPlaceholders?.put("mapsApiKey", apiKey)
+            val appExtension = project.extensions.findByType<com.android.build.gradle.AppExtension>()
+            appExtension?.applicationVariants?.all {
+                mergedFlavor.manifestPlaceholders["mapsApiKey"] = "hehe"
+            }
         }
     }
 }
@@ -84,5 +88,5 @@ class MapsApiKeyProviderTest : Plugin<Project> {
 apply<MapsApiKeyProviderTest>()
 configure<MapsApiKeyProviderExtensionTest> {
     propertyKey = "MAPS_API_KEY"
-//    propertiesFile = "locals.properties"
+    //propertiesFile = "locals.properties"
 }

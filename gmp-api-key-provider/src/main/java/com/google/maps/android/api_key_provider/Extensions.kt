@@ -1,4 +1,4 @@
-package me.chrisarriola.androidthings.maps_api_key_plugin
+package com.google.maps.android.api_key_provider
 
 import com.android.build.gradle.AppExtension
 import org.gradle.api.Project
