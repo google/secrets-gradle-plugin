@@ -30,7 +30,13 @@ class GmpApiKeyProvider : Plugin<Project> {
 
             val mapsApiKey = properties.getProperty(extension.propertyKey)
             project.androidProject()?.applicationVariants?.all {
+                // Inject manifest build variable
                 it.mergedFlavor.manifestPlaceholders[manifestPlaceholderVarName] = mapsApiKey
+
+                // Conditionally create a build config field
+                if (extension.generateBuildConfigField) {
+                    it.buildConfigField("String", extension.buildConfigFieldName, mapsApiKey)
+                }
             }
         }
     }

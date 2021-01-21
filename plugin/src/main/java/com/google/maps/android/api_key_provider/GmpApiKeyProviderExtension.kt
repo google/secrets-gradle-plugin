@@ -16,8 +16,20 @@ open class GmpApiKeyProviderExtension {
      */
     var propertyKey: String = defaultPropertyKey
 
+    /**
+     * Determines if a build config field containing the GMP API key should be set.
+     */
+    var generateBuildConfigField: Boolean = false
+
+    /**
+     * If "$generateBuildConfigField" is set to `true`, the name of this field will be used
+     * for the generated build config variable name.
+     */
+    var buildConfigFieldName: String = defaultBuildConfigName
+
     companion object {
         private const val defaultPropertiesFile = "local.properties"
         private const val defaultPropertyKey = "gmp.apiKey"
+        private const val defaultBuildConfigName = "GMP_API_KEY"
     }
 }

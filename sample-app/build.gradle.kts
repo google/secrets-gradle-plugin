@@ -1,21 +1,22 @@
 plugins {
     id("com.android.application")
     id("kotlin-android")
+
+    // 1. Include the plugin
     id("com.google.maps.android.api_key_provider") version "0.1"
 }
 
 android {
-    compileSdkVersion(29)
+    compileSdkVersion(30)
     buildToolsVersion = "29.0.3"
 
     defaultConfig {
         applicationId = "me.chrisarriola.androidthings.myapplication"
         minSdkVersion(21)
-        targetSdkVersion(29)
+        targetSdkVersion(30)
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        //manifestPlaceholders["mapsApiKey"] = "hehe"
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -36,5 +37,7 @@ dependencies {
     implementation("androidx.navigation:navigation-ui-ktx:2.2.2")
 }
 
+// 2. Optionally configure the plugin
 gmpApiKeyProvider {
+    generateBuildConfigField = true
 }
