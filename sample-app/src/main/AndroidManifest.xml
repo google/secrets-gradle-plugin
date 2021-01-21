@@ -15,7 +15,7 @@
             android:theme="@style/Theme.MyApplication.NoActionBar">
             <meta-data
                 android:name="com.google.android.geo.API_KEY"
-                android:value="${gmpApiKey}" />
+                android:value="${gmpapiKey}" />
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

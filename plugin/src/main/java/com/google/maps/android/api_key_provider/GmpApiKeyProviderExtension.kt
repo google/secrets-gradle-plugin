@@ -27,6 +27,8 @@ open class GmpApiKeyProviderExtension {
      */
     var buildConfigFieldName: String = defaultBuildConfigName
 
+    var ignoreList: List<String> = mutableListOf("sdk.dir")
+
     companion object {
         private const val defaultPropertiesFile = "local.properties"
         private const val defaultPropertyKey = "gmp.apiKey"
