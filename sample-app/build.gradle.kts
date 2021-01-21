@@ -25,6 +25,7 @@ android {
 
 dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.4.10")
+    implementation("com.google.android.material:material:1.2.1")
     implementation("androidx.appcompat:appcompat:1.2.0")
 }
 
@@ -36,4 +37,5 @@ secrets {
 
     // Add keys that the plugin should ignore from the properties file
     ignoreList.add("keyToIgnore")
+    ignoreList.add("ignore*")
 }

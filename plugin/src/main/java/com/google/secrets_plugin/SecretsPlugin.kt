@@ -5,7 +5,11 @@ import org.gradle.api.Project
 
 /**
  * Plugin that reads secrets from a properties file and injects manifest build and BuildConfig
- * variables into an Android project.
+ * variables into an Android project. Since property keys are turned into Java variables,
+ * invalid variable characters from the property key are removed.
+ *
+ * e.g.
+ * A key defined as "sdk.dir" in the properties file will be converted to "sdkdir".
  */
 class SecretsPlugin : Plugin<Project> {
 
@@ -25,10 +29,12 @@ class SecretsPlugin : Plugin<Project> {
                     extension.propertiesFileName
                 )
 
+                val ignoreRegexs = extension.ignoreList.map { Regex(pattern = it) }
+
                 properties.keys.map { key ->
                     key as String
                 }.filter { key ->
-                    key.isNotEmpty() && !extension.ignoreList.contains(key)
+                    key.isNotEmpty() && !ignoreRegexs.any { it.containsMatchIn(key) }
                 }.forEach { key ->
                     val value = properties.getProperty(key)
                     val translatedKey = key.replace(javaVarRegexp, "")
