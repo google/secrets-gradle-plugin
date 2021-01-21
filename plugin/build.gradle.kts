@@ -53,7 +53,7 @@ publishing {
 }
 
 object PluginInfo {
-    const val id = "com.google.maps.android.api_key_provider"
-    const val name = "gmpApiKeyProvider"
-    const val implementationClass = "com.google.maps.android.api_key_provider.GmpApiKeyProvider"
+    const val id = "com.google.secrets_plugin"
+    const val name = "secretsPlugin"
+    const val implementationClass = "com.google.secrets_plugin.SecretsPlugin"
 }

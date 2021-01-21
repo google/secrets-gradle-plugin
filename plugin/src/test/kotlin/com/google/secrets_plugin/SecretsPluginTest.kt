@@ -1,8 +1,8 @@
-package com.google.maps.android.api_key_provider
+package com.google.secrets_plugin
 
 import org.junit.Test
 
-class GmpApiKeyProviderTest {
+class SecretsPluginTest {
     private val pluginId = "com.google.maps.android.api_key_provider"
 
     @Test

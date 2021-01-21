@@ -1,23 +1,21 @@
-package com.google.maps.android.api_key_provider
+package com.google.secrets_plugin
 
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import java.lang.IllegalStateException
-import java.nio.charset.CharacterCodingException
 
 /**
- * Plugin that reads the Maps API key from a properties file and injects a build variable in the
- * Android manifest file.
+ * Plugin that reads secrets from a properties file and injects manifest build and BuildConfig
+ * variables into an Android project.
  */
-class GmpApiKeyProvider : Plugin<Project> {
+class SecretsPlugin : Plugin<Project> {
 
-    private val extensionName = "gmpApiKeyProvider"
+    private val extensionName = "secrets"
     private val javaVarRegexp = Regex(pattern = "((?![a-zA-Z_\$0-9]).)")
 
     override fun apply(project: Project) {
         val extension = project.extensions.create(
             extensionName,
-            GmpApiKeyProviderExtension::class.java
+            SecretsPluginExtension::class.java
         )
 
         project.afterEvaluate {
@@ -34,7 +32,6 @@ class GmpApiKeyProvider : Plugin<Project> {
                 }.forEach { key ->
                     val value = properties.getProperty(key)
                     val translatedKey = key.replace(javaVarRegexp, "")
-                    println("Key: '$key 'translatedKey: '$translatedKey'")
                     variant.mergedFlavor.manifestPlaceholders[translatedKey] = value
                     variant.buildConfigField("String", translatedKey, value)
                 }

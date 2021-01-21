@@ -1,4 +1,4 @@
-package com.google.maps.android.api_key_provider
+package com.google.secrets_plugin
 
 import com.android.build.gradle.AppExtension
 import org.gradle.api.Project

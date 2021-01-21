@@ -3,7 +3,7 @@ plugins {
     id("kotlin-android")
 
     // 1. Include the plugin
-    id("com.google.maps.android.api_key_provider") version "0.1"
+    id("com.google.secrets_plugin") version "0.1"
 }
 
 android {
@@ -11,16 +11,12 @@ android {
     buildToolsVersion = "29.0.3"
 
     defaultConfig {
-        applicationId = "me.chrisarriola.androidthings.myapplication"
+        applicationId = "com.google.secrets_plugin.sample"
         minSdkVersion(21)
         targetSdkVersion(30)
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-    }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
     }
     kotlinOptions {
         jvmTarget = "1.8"
@@ -29,15 +25,15 @@ android {
 
 dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.4.10")
-    implementation("androidx.core:core-ktx:1.2.0")
-    implementation("androidx.appcompat:appcompat:1.1.0")
-    implementation("com.google.android.material:material:1.1.0")
-    implementation("androidx.constraintlayout:constraintlayout:1.1.3")
-    implementation("androidx.navigation:navigation-fragment-ktx:2.2.2")
-    implementation("androidx.navigation:navigation-ui-ktx:2.2.2")
+    implementation("androidx.appcompat:appcompat:1.2.0")
 }
 
 // 2. Optionally configure the plugin
-gmpApiKeyProvider {
-    generateBuildConfigField = true
+secrets {
+    // Optionally specify a different file name containing your secrets.
+    // The plugin defaults to "local.properties"
+    propertiesFileName = "secrets.properties"
+
+    // Add keys that the plugin should ignore from the properties file
+    ignoreList.add("keyToIgnore")
 }
