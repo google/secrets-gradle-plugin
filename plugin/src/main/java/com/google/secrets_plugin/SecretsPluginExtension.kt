@@ -15,8 +15,7 @@
 package com.google.secrets_plugin
 
 /**
- * Configuration object for customizing where the Maps API Key is retrieved from and how it should
- * be provided.
+ * Configuration object for [SecretsPlugin].
  */
 open class SecretsPluginExtension {
     /**

@@ -1,4 +1,4 @@
-# Android Secrets Gradle Plugin
+# Secrets Gradle Plugin for Android
 
 A Gradle plugin for providing your secrets securely to your Android project.
 

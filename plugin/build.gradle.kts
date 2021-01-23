@@ -35,21 +35,21 @@ dependencies {
 gradlePlugin {
     plugins {
         create(PluginInfo.name) {
-            id = PluginInfo.id
+            id = "${PluginInfo.group}.${PluginInfo.artifactId}"
             implementationClass = PluginInfo.implementationClass
         }
     }
 }
 
 pluginBundle {
-    website = "https://github.com/googlemaps"
-    vcsUrl = "https://github.com/googlemaps"
-    description = "A thing"
-    version = "0.1"
+    website = "https://github.com/google/secrets-plugin"
+    vcsUrl = "https://github.com/google/secrets-plugin"
+    description = "A Gradle plugin for providing secrets securely to an Android project."
+    version = PluginInfo.version
 
     (plugins) {
         PluginInfo.name {
-            displayName = "GMP API Key Provider"
+            displayName = "Secrets Gradle Plugin for Android"
             tags = listOf("kotlin")
         }
     }
@@ -58,9 +58,9 @@ pluginBundle {
 publishing {
     publications {
         create<MavenPublication>("mavenPub") {
-            group = "com.google.maps.android"
-            artifactId = "api_key_provider"
-            version = "0.1"
+            group = PluginInfo.group
+            artifactId = PluginInfo.artifactId
+            version = PluginInfo.version
         }
     }
     repositories {
@@ -69,7 +69,9 @@ publishing {
 }
 
 object PluginInfo {
-    const val id = "com.google.secrets_plugin"
+    const val group = "com.google"
+    const val artifactId = "secrets_plugin"
     const val name = "secretsPlugin"
+    const val version = "0.1"
     const val implementationClass = "com.google.secrets_plugin.SecretsPlugin"
 }

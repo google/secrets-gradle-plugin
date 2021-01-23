@@ -14,10 +14,8 @@
 
 package com.google.secrets_plugin
 
-import com.android.build.gradle.api.ApplicationVariant
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import java.util.*
 
 /**
  * Plugin that reads secrets from a properties file and injects manifest build and BuildConfig
