@@ -1,4 +1,6 @@
 # Secrets Gradle Plugin for Android
+![Tests](https://github.com/google/secrets-gradle-plugin/workflows/Tests/badge.svg)
+![Apache-2.0](https://img.shields.io/badge/license-Apache-blue)
 
 A Gradle plugin for providing your secrets securely to your Android project.
 
@@ -16,14 +18,14 @@ In your app-level `build.gradle` file:
 Groovy:
 ```groovy
 plugins {
-    id 'com.google.secrets_plugin' version '0.1'
+    id 'com.google.secrets_gradle_plugin' version '0.1'
 }
 ```
 
 Kotlin:
 ```groovy
 plugins {
-    id("com.google.secrets_plugin") version "0.1"
+    id("com.google.secrets_gradle_plugin") version "0.1"
 }
 ```
 

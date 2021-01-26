@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.google.secrets_plugin
+package com.google.secrets_gradle_plugin
 
 import com.android.build.gradle.api.ApplicationVariant
 import com.android.build.gradle.internal.core.InternalBaseVariant
@@ -58,7 +58,7 @@ class SecretsPluginTest {
         variant = mock() {
             on { mergedFlavor } doReturn flavor
         }
-        project.pluginManager.apply("com.google.secrets_plugin")
+        project.pluginManager.apply("com.google.secrets_gradle_plugin")
     }
 
     @Test(expected = ProjectConfigurationException::class)
