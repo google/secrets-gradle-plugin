@@ -1,4 +1,6 @@
 # Secrets Gradle Plugin for Android
+![Tests](https://github.com/google/secrets-gradle-plugin/workflows/Tests/badge.svg)
+![Apache-2.0](https://img.shields.io/badge/license-Apache-blue)
 
 A Gradle plugin for providing your secrets securely to your Android project.
 
