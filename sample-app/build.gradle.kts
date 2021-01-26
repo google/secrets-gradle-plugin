@@ -17,7 +17,7 @@ plugins {
     id("kotlin-android")
 
     // 1. Include the plugin
-    id("com.google.secrets_gradle_plugin") version "0.1"
+//    id("com.google.secrets_gradle_plugin") version "0.1"
 }
 
 android {
@@ -44,12 +44,12 @@ dependencies {
 }
 
 // 2. Optionally configure the plugin
-secrets {
-    // Optionally specify a different file name containing your secrets.
-    // The plugin defaults to "local.properties"
-    propertiesFileName = "secrets.properties"
-
-    // Add keys that the plugin should ignore from the properties file
-    ignoreList.add("keyToIgnore")
-    ignoreList.add("ignore*")
-}
+//secrets {
+//    // Optionally specify a different file name containing your secrets.
+//    // The plugin defaults to "local.properties"
+//    propertiesFileName = "secrets.properties"
+//
+//    // Add keys that the plugin should ignore from the properties file
+//    ignoreList.add("keyToIgnore")
+//    ignoreList.add("ignore*")
+//}

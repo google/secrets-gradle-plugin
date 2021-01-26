@@ -27,7 +27,7 @@
         android:theme="@style/Theme.MyApplication">
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="${gmpApiKey}" />
+            android:value="gmpApiKey" />
         <activity
             android:name="com.google.secrets_gradle_plugin.sample.MainActivity"
             android:label="@string/app_name"
