@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.google.secrets_plugin.sample
+package com.google.secrets_gradle_plugin.sample
 
 import androidx.appcompat.app.AppCompatActivity
 

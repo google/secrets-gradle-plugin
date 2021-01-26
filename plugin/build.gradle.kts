@@ -42,8 +42,8 @@ gradlePlugin {
 }
 
 pluginBundle {
-    website = "https://github.com/google/secrets-plugin"
-    vcsUrl = "https://github.com/google/secrets-plugin"
+    website = "https://github.com/google/secrets-gradle-plugin"
+    vcsUrl = "https://github.com/google/secrets-gradle-plugin"
     description = "A Gradle plugin for providing secrets securely to an Android project."
     version = PluginInfo.version
 
@@ -70,8 +70,8 @@ publishing {
 
 object PluginInfo {
     const val group = "com.google"
-    const val artifactId = "secrets_plugin"
-    const val name = "secretsPlugin"
+    const val artifactId = "secrets_gradle_plugin"
+    const val name = "secretsGradlePlugin"
     const val version = "0.1"
-    const val implementationClass = "com.google.secrets_plugin.SecretsPlugin"
+    const val implementationClass = "com.google.secrets_gradle_plugin.SecretsPlugin"
 }

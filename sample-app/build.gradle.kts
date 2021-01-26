@@ -17,7 +17,7 @@ plugins {
     id("kotlin-android")
 
     // 1. Include the plugin
-    id("com.google.secrets_plugin") version "0.1"
+    id("com.google.secrets_gradle_plugin") version "0.1"
 }
 
 android {
