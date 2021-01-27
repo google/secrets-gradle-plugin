@@ -10,6 +10,7 @@ class and in the Android manifest file.
 
 ## Requirements
 * Gradle-based Android project
+* Android Gradle plugin 4.1.x or newer
 
 ## Installation
 
