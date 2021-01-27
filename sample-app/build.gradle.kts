@@ -48,7 +48,7 @@ secrets {
     // Optionally specify a different file name containing your secrets.
     // The plugin defaults to "local.properties"
     propertiesFileName = "secrets.properties"
-    // defaultPropertiesFileName = "secrets.defaults.properties"
+    defaultPropertiesFileName = "secrets.defaults.properties"
 
     // Add keys that the plugin should ignore from the properties file
     ignoreList.add("keyToIgnore")
