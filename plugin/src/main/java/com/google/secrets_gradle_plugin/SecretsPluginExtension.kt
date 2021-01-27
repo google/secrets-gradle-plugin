@@ -28,6 +28,11 @@ open class SecretsPluginExtension {
      */
     var ignoreList: MutableList<String> = defaultIgnoreList
 
+    /**
+     * The name of the properties file containing secrets' default values.
+     */
+    var defaultPropertiesFileName: String? = null
+
     companion object {
         const val defaultPropertiesFile = "local.properties"
         val defaultIgnoreList = mutableListOf("sdk.dir")
