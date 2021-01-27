@@ -50,7 +50,7 @@ pluginBundle {
     (plugins) {
         PluginInfo.name {
             displayName = "Secrets Gradle Plugin for Android"
-            tags = listOf("kotlin")
+            tags = listOf("kotlin", "android")
         }
     }
 }
