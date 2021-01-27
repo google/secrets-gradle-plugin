@@ -16,6 +16,8 @@ package com.google.secrets_gradle_plugin
 
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import java.io.FileNotFoundException
+import java.util.Properties
 
 /**
  * Plugin that reads secrets from a properties file and injects manifest build and BuildConfig
@@ -38,16 +40,24 @@ class SecretsPlugin : Plugin<Project> {
             val defaultProperties = extension.defaultPropertiesFileName?.let {
                 project.rootProject.loadPropertiesFile(it)
             }
-            val properties = project.rootProject.loadPropertiesFile(
-                extension.propertiesFileName
-            )
+
+            val properties: Properties? = try {
+                project.rootProject.loadPropertiesFile(
+                    extension.propertiesFileName
+                )
+            } catch (e: FileNotFoundException) {
+                defaultProperties ?: throw e
+            }
+
             project.androidProject()?.applicationVariants?.all { variant ->
                 // Inject defaults first
                 defaultProperties?.let {
                     variant.inject(it, extension.ignoreList)
                 }
 
-                variant.inject(properties, extension.ignoreList)
+                properties?.let {
+                    variant.inject(properties, extension.ignoreList)
+                }
             }
         }
     }
