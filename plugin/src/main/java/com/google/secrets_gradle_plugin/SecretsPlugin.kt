@@ -35,10 +35,18 @@ class SecretsPlugin : Plugin<Project> {
             SecretsPluginExtension::class.java
         )
         project.afterEvaluate {
+            val defaultProperties = extension.defaultPropertiesFileName?.let {
+                project.rootProject.loadPropertiesFile(it)
+            }
             val properties = project.rootProject.loadPropertiesFile(
                 extension.propertiesFileName
             )
             project.androidProject()?.applicationVariants?.all { variant ->
+                // Inject defaults first
+                defaultProperties?.let {
+                    variant.inject(it, extension.ignoreList)
+                }
+
                 variant.inject(properties, extension.ignoreList)
             }
         }
