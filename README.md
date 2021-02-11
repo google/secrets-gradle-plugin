@@ -8,6 +8,8 @@ This Gradle plugin reads secrets from a properties file **not checked into versi
 such as `local.properties`, and expose those properties as variables in the Gradle-generated `BuildConfig`
 class and in the Android manifest file.
 
+**DISCLAIMER:** This plugin is primarily for hiding your keys from version control. Since your key is part of the static binary, your API keys are still recoverable by decompiling an APK. So, securing your key using other measures like adding restrictions (if possible) are recommended.
+
 ## Requirements
 * Gradle-based Android project
 * Android Gradle plugin 4.1.x or newer
