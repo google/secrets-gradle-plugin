@@ -58,6 +58,30 @@ class SecretsPlugin : Plugin<Project> {
                 properties?.let {
                     variant.inject(properties, extension.ignoreList)
                 }
+
+                // Inject build-type specific properties
+                val buildTypeFileName = "${variant.buildType.name}.properties"
+                val buildTypeProperties = try {
+                    project.rootProject.loadPropertiesFile(buildTypeFileName)
+                } catch (e: FileNotFoundException) {
+                    println("Could not find $buildTypeFileName")
+                    null
+                }
+                buildTypeProperties?.let {
+                    variant.inject(it, extension.ignoreList)
+                }
+
+                // Inject flavor-specific properties
+                val flavorFileName = "${variant.flavorName}.properties"
+                val flavorProperties = try {
+                    project.rootProject.loadPropertiesFile(flavorFileName)
+                } catch (e: FileNotFoundException) {
+                    println("Could not find $flavorFileName")
+                    null
+                }
+                flavorProperties?.let {
+                    variant.inject(it, extension.ignoreList)
+                }
             }
         }
     }

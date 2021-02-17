@@ -69,6 +69,13 @@ secrets {
 }
 ```
 
+### Build-Variant Specific Properties
+
+To set build-variant specific properties (build type or flavor), create a properties file at the
+root directory of the project with the same name as the variant. For example, to set keys specific
+for the `release` build type, create a new file called `release.properties` containing
+release-specific keys.
+
 ## Contributing
 
 Contributions to this library are always welcome and highly encouraged!
