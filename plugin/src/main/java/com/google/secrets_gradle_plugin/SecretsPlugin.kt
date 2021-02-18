@@ -64,7 +64,6 @@ class SecretsPlugin : Plugin<Project> {
                 val buildTypeProperties = try {
                     project.rootProject.loadPropertiesFile(buildTypeFileName)
                 } catch (e: FileNotFoundException) {
-                    println("Could not find $buildTypeFileName")
                     null
                 }
                 buildTypeProperties?.let {
@@ -76,7 +75,6 @@ class SecretsPlugin : Plugin<Project> {
                 val flavorProperties = try {
                     project.rootProject.loadPropertiesFile(flavorFileName)
                 } catch (e: FileNotFoundException) {
-                    println("Could not find $flavorFileName")
                     null
                 }
                 flavorProperties?.let {
