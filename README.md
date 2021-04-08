@@ -47,7 +47,7 @@ After applying the plugin and building your project, the API key then becomes ac
   ```
   2. As a variable accessible in your `AndroidManifest.xml` file:
   ```xml
-  <meta-data android:value=${apiKey} />
+  <meta-data android:value="${apiKey}" />
   ```
 
 ## Configuration Options
