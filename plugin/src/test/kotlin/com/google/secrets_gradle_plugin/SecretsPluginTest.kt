@@ -38,7 +38,7 @@ class SecretsPluginTest {
     lateinit var placeholders: MutableMap<String, Any>
     lateinit var root: Project
     lateinit var project: Project
-    lateinit var variant: ApplicationVariant
+    lateinit var variant: InternalBaseVariant
 
     @Before
     fun setUp() {

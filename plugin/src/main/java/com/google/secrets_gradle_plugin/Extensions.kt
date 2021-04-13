@@ -15,13 +15,17 @@
 package com.google.secrets_gradle_plugin
 
 import com.android.build.gradle.AppExtension
-import com.android.build.gradle.api.ApplicationVariant
+import com.android.build.gradle.LibraryExtension
+import com.android.build.gradle.internal.core.InternalBaseVariant
 import org.gradle.api.Project
 import java.io.FileNotFoundException
 import java.util.Properties
 
 fun Project.androidProject() : AppExtension? =
     extensions.findByType(AppExtension::class.java)
+
+fun Project.libraryProject() : LibraryExtension? =
+    extensions.findByType(LibraryExtension::class.java)
 
 fun Project.loadPropertiesFile(fileName: String) : Properties {
     // Load file
@@ -40,7 +44,7 @@ fun Project.loadPropertiesFile(fileName: String) : Properties {
 
 private val javaVarRegexp = Regex(pattern = "((?![a-zA-Z_\$0-9]).)")
 
-fun ApplicationVariant.inject(properties: Properties, ignore: List<String>) {
+fun InternalBaseVariant.inject(properties: Properties, ignore: List<String>) {
     val ignoreRegexs = ignore.map { Regex(pattern = it) }
     properties.keys.map { key ->
         key as String
