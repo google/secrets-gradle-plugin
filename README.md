@@ -32,6 +32,8 @@ plugins {
 }
 ```
 
+This plugin also supports library module type (`com.android.library`). Just install the plugin in your library-level `build.gradle` file and keys will be visible inside that module as well.
+
 ## Example Usage
 
 Example contents of `local.properties` under your root project:

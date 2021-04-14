@@ -14,7 +14,6 @@
 
 package com.google.secrets_gradle_plugin
 
-import com.android.build.gradle.api.ApplicationVariant
 import com.android.build.gradle.internal.core.InternalBaseVariant
 import com.nhaarman.mockitokotlin2.doReturn
 import com.nhaarman.mockitokotlin2.mock
@@ -38,7 +37,7 @@ class SecretsPluginTest {
     lateinit var placeholders: MutableMap<String, Any>
     lateinit var root: Project
     lateinit var project: Project
-    lateinit var variant: ApplicationVariant
+    lateinit var variant: InternalBaseVariant
 
     @Before
     fun setUp() {

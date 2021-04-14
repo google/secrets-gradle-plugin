@@ -14,6 +14,7 @@
 
 package com.google.secrets_gradle_plugin
 
+import com.android.build.gradle.internal.core.InternalBaseVariant
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import java.io.FileNotFoundException
@@ -49,38 +50,54 @@ class SecretsPlugin : Plugin<Project> {
                 defaultProperties ?: throw e
             }
 
+            // Target: "com.android.application" module variants
             project.androidProject()?.applicationVariants?.all { variant ->
-                // Inject defaults first
-                defaultProperties?.let {
-                    variant.inject(it, extension.ignoreList)
-                }
-
-                properties?.let {
-                    variant.inject(properties, extension.ignoreList)
-                }
-
-                // Inject build-type specific properties
-                val buildTypeFileName = "${variant.buildType.name}.properties"
-                val buildTypeProperties = try {
-                    project.rootProject.loadPropertiesFile(buildTypeFileName)
-                } catch (e: FileNotFoundException) {
-                    null
-                }
-                buildTypeProperties?.let {
-                    variant.inject(it, extension.ignoreList)
-                }
-
-                // Inject flavor-specific properties
-                val flavorFileName = "${variant.flavorName}.properties"
-                val flavorProperties = try {
-                    project.rootProject.loadPropertiesFile(flavorFileName)
-                } catch (e: FileNotFoundException) {
-                    null
-                }
-                flavorProperties?.let {
-                    variant.inject(it, extension.ignoreList)
-                }
+                generateConfigKey(project, extension, defaultProperties, properties, variant)
             }
+
+            // Target: "com.android.library" module variants
+            project.libraryProject()?.libraryVariants?.all { variant ->
+                generateConfigKey(project, extension, defaultProperties, properties, variant)
+            }
+        }
+    }
+
+    private fun generateConfigKey(
+        project: Project,
+        extension: SecretsPluginExtension,
+        defaultProperties: Properties?,
+        properties: Properties?,
+        variant: InternalBaseVariant
+    ) {
+        // Inject defaults first
+        defaultProperties?.let {
+            variant.inject(it, extension.ignoreList)
+        }
+
+        properties?.let {
+            variant.inject(properties, extension.ignoreList)
+        }
+
+        // Inject build-type specific properties
+        val buildTypeFileName = "${variant.buildType.name}.properties"
+        val buildTypeProperties = try {
+            project.rootProject.loadPropertiesFile(buildTypeFileName)
+        } catch (e: FileNotFoundException) {
+            null
+        }
+        buildTypeProperties?.let {
+            variant.inject(it, extension.ignoreList)
+        }
+
+        // Inject flavor-specific properties
+        val flavorFileName = "${variant.flavorName}.properties"
+        val flavorProperties = try {
+            project.rootProject.loadPropertiesFile(flavorFileName)
+        } catch (e: FileNotFoundException) {
+            null
+        }
+        flavorProperties?.let {
+            variant.inject(it, extension.ignoreList)
         }
     }
 }
