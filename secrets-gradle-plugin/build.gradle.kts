@@ -72,6 +72,6 @@ object PluginInfo {
     const val group = "com.google.android"
     const val artifactId = "secrets-gradle-plugin"
     const val name = "secretsGradlePlugin"
-    const val version = "1.0.0"
+    const val version = "1.1.0"
     const val implementationClass = "com.google.android.secrets_gradle_plugin.SecretsPlugin"
 }
