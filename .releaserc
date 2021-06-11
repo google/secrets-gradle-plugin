@@ -6,7 +6,7 @@ plugins:
   - - "@google/semantic-release-replace-plugin"
     - replacements:
         - files:
-            - "./secrets_gradle_plugin/build.gradle.kts"
+            - "./secrets-gradle-plugin/build.gradle.kts"
           from: "const val version = \".*\""
           to: "const val version = \"${nextRelease.version}\""
         - files:
@@ -22,7 +22,7 @@ plugins:
       publishCmd: "./gradlew publishPlugins --warn --stacktrace"
   - - "@semantic-release/git"
     - assets:
-        - "./secrets_gradle_plugin/build.gradle.kts"
+        - "./secrets-gradle-plugin/build.gradle.kts"
         - "*.md"
   - "@semantic-release/github"
 options:
