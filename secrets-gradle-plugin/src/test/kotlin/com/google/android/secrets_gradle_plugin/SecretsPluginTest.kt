@@ -57,7 +57,7 @@ class SecretsPluginTest {
         variant = mock() {
             on { mergedFlavor } doReturn flavor
         }
-        project.pluginManager.apply("com.google.android.secrets_gradle_plugin")
+        project.pluginManager.apply("com.google.android.secrets-gradle-plugin")
     }
 
     @Test(expected = ProjectConfigurationException::class)

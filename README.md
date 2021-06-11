@@ -21,14 +21,14 @@ In your app-level `build.gradle` file:
 Groovy:
 ```groovy
 plugins {
-    id 'com.google.android.secrets_gradle_plugin' version '1.0.0'
+    id 'com.google.android.secrets-gradle-plugin' version '1.0.0'
 }
 ```
 
 Kotlin:
 ```groovy
 plugins {
-    id("com.google.android.secrets_gradle_plugin") version "1.0.0"
+    id("com.google.android.secrets-gradle-plugin") version "1.0.0"
 }
 ```
 

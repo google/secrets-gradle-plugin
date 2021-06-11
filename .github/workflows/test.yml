@@ -34,4 +34,4 @@ jobs:
     - name: Run tests
       run: |
         echo "Running unit tests"
-        ./gradlew :secrets_gradle_plugin:build check test -x lint --stacktrace
+        ./gradlew :secrets-gradle-plugin:build check test -x lint --stacktrace
