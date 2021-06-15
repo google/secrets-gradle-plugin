@@ -44,7 +44,7 @@ gradlePlugin {
 pluginBundle {
     website = "https://github.com/google/secrets-gradle-plugin"
     vcsUrl = "https://github.com/google/secrets-gradle-plugin"
-    description = "A Gradle plugin for providing secrets securely to an Android project."
+    description = "Deprecated: Replaced by com.google.android.secrets-gradle-plugin"
     version = PluginInfo.version
 
     (plugins) {
@@ -72,6 +72,6 @@ object PluginInfo {
     const val group = "com.google"
     const val artifactId = "secrets_gradle_plugin"
     const val name = "secretsGradlePlugin"
-    const val version = "0.6"
+    const val version = "0.6.1"
     const val implementationClass = "com.google.secrets_gradle_plugin.SecretsPlugin"
 }
