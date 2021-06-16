@@ -16,7 +16,7 @@ class and in the Android manifest file.
 
 ## Installation
 
-**NOTE**: Starting from v1.1.0, the maven coordinate of the plugin changed group ID to "com.google.android.libraries.mapsplatform.secrets-gradle-plugin" and artifact ID to "secrets-gradle-plugin" and is now being distributed via Google Maven.  You can still download previous versions of the plugin from Gradle's plugin portal.
+**NOTE**: Starting from v1.1.0, the maven coordinate of the plugin changed group ID to "com.google.android.libraries.mapsplatform.secrets-gradle-plugin" and artifact ID to "secrets-gradle-plugin" and is now being distributed via Google Maven (gMaven).  You can still download previous versions of the plugin from Gradle's plugin portal, but new versions will now only be distributed through gMaven.
 
 1. In your project's root `build.gradle` file:
 
