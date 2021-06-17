@@ -35,7 +35,7 @@ dependencies {
 gradlePlugin {
     plugins {
         create(PluginInfo.name) {
-            id = "${PluginInfo.group}.${PluginInfo.artifactId}"
+            id = PluginInfo.group
             implementationClass = PluginInfo.implementationClass
         }
     }

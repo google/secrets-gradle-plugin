@@ -16,6 +16,7 @@ include(":secrets-gradle-plugin", ":sample-app")
 
 pluginManagement {
     repositories {
+        mavenLocal()
         maven(url = "./plugin/build/repository")
         gradlePluginPortal()
     }
