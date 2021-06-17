@@ -101,7 +101,7 @@ publishing {
 }
 
 object PluginInfo {
-    const val artifactId = "secrets-gradle-plugin"
+    const val artifactId = "com.google.android.libraries.mapsplatform.secrets-gradle-plugin.gradle.plugin"
     const val description = "A Gradle plugin for providing secrets securely to an Android project."
     const val group = "com.google.android.libraries.mapsplatform.secrets-gradle-plugin"
     const val implementationClass = "com.google.android.libraries.mapsplatform.secrets_gradle_plugin.SecretsPlugin"
