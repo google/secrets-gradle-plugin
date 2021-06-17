@@ -37,6 +37,8 @@ gradlePlugin {
         create(PluginInfo.name) {
             id = PluginInfo.group
             implementationClass = PluginInfo.implementationClass
+            displayName = PluginInfo.displayName
+            description = PluginInfo.description
         }
     }
 }
@@ -49,7 +51,7 @@ pluginBundle {
 
     (plugins) {
         PluginInfo.name {
-            displayName = "Secrets Gradle Plugin for Android"
+            displayName = PluginInfo.displayName
             tags = listOf("kotlin", "android")
         }
     }
@@ -97,15 +99,17 @@ publishing {
     }
     repositories {
         maven(url = "build/repository")
+        mavenLocal()
     }
 }
 
 object PluginInfo {
     const val artifactId = "com.google.android.libraries.mapsplatform.secrets-gradle-plugin.gradle.plugin"
     const val description = "A Gradle plugin for providing secrets securely to an Android project."
+    const val displayName = "Secrets Gradle Plugin for Android"
     const val group = "com.google.android.libraries.mapsplatform.secrets-gradle-plugin"
     const val implementationClass = "com.google.android.libraries.mapsplatform.secrets_gradle_plugin.SecretsPlugin"
     const val name = "secretsGradlePlugin"
     const val url = "https://github.com/google/secrets-gradle-plugin"
-    const val version = "1.1.0"
+    const val version = "1.2.0"
 }
