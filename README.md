@@ -23,14 +23,14 @@ In your app-level `build.gradle` file:
 Groovy:
 ```groovy
 plugins {
-    id 'com.google.android.libraries.mapsplatform.secrets-gradle-plugin'
+    id 'com.google.android.libraries.mapsplatform.secrets-gradle-plugin' version '1.2.0'
 }
 ```
 
 Kotlin:
 ```groovy
 plugins {
-    id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
+    id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin") version "1.2.0"
 }
 ```
 

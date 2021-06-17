@@ -18,6 +18,6 @@ pluginManagement {
     repositories {
         mavenLocal()
         maven(url = "./plugin/build/repository")
-        gradlePluginPortal()
+        google()
     }
 }
