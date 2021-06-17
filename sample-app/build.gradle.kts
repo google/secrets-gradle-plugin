@@ -17,7 +17,7 @@ plugins {
     id("kotlin-android")
 
     // 1. Include the plugin
-    id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin.secrets-gradle-plugin")
+    id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
 }
 
 android {
