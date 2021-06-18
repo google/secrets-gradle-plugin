@@ -18,19 +18,39 @@ class and in the Android manifest file.
 
 **NOTE**: Starting from v1.1.0, the plugin ID was changed to "com.google.android.libraries.mapsplatform.secrets-gradle-plugin" and the plugin is now being distributed via Google Maven (gMaven).  You can still download previous versions of the plugin from Gradle's plugin portal, but new versions will now only be distributed through gMaven.
 
-In your app-level `build.gradle` file:
+1. In your project's root `build.gradle` file:
+
+Groovy:
+```groovy
+buildscript {
+    dependencies {
+        classpath "com.google.android.libraries.mapsplatform.secrets-gradle-plugin:secrets-gradle-plugin:1.2.0"
+    }
+}
+```
+
+Kotlin:
+```kotlin
+buildscript {
+    dependencies {
+        classpath("com.google.android.libraries.mapsplatform.secrets-gradle-plugin:secrets-gradle-plugin:1.2.0")
+    }
+}
+```
+
+2. In your app-level `build.gradle` file:
 
 Groovy:
 ```groovy
 plugins {
-    id 'com.google.android.libraries.mapsplatform.secrets-gradle-plugin' version '1.2.0'
+    id 'com.google.android.libraries.mapsplatform.secrets-gradle-plugin'
 }
 ```
 
 Kotlin:
 ```groovy
 plugins {
-    id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin") version "1.2.0"
+    id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
 }
 ```
 
