@@ -22,7 +22,7 @@ plugins {
 
 android {
     compileSdkVersion(30)
-    buildToolsVersion = "29.0.3"
+    buildToolsVersion = "30.0.2"
 
     defaultConfig {
         applicationId = "com.google.secrets_plugin.sample"
