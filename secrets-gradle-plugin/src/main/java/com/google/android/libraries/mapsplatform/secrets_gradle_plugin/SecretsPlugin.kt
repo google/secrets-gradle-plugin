@@ -11,9 +11,11 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+@file:Suppress("UnstableApiUsage")
 
 package com.google.android.libraries.mapsplatform.secrets_gradle_plugin
 
+import com.android.build.api.variant.Variant
 import com.android.build.gradle.internal.core.InternalBaseVariant
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -37,26 +39,21 @@ class SecretsPlugin : Plugin<Project> {
             extensionName,
             SecretsPluginExtension::class.java
         )
-        project.afterEvaluate {
-            val defaultProperties = extension.defaultPropertiesFileName?.let {
-                project.rootProject.loadPropertiesFile(it)
-            }
+        val supportedComponents =
+            listOf(project.androidAppComponent(), project.androidLibraryComponent())
+        supportedComponents.forEach { component ->
+            component?.onVariants { variant ->
+                val defaultProperties = extension.defaultPropertiesFileName?.let {
+                    project.rootProject.loadPropertiesFile(it)
+                }
 
-            val properties: Properties? = try {
-                project.rootProject.loadPropertiesFile(
-                    extension.propertiesFileName
-                )
-            } catch (e: FileNotFoundException) {
-                defaultProperties ?: throw e
-            }
-
-            // Target: "com.android.application" module variants
-            project.androidProject()?.applicationVariants?.all { variant ->
-                generateConfigKey(project, extension, defaultProperties, properties, variant)
-            }
-
-            // Target: "com.android.library" module variants
-            project.libraryProject()?.libraryVariants?.all { variant ->
+                val properties: Properties? = try {
+                    project.rootProject.loadPropertiesFile(
+                        extension.propertiesFileName
+                    )
+                } catch (e: FileNotFoundException) {
+                    defaultProperties ?: throw e
+                }
                 generateConfigKey(project, extension, defaultProperties, properties, variant)
             }
         }
@@ -67,7 +64,7 @@ class SecretsPlugin : Plugin<Project> {
         extension: SecretsPluginExtension,
         defaultProperties: Properties?,
         properties: Properties?,
-        variant: InternalBaseVariant
+        variant: Variant
     ) {
         // Inject defaults first
         defaultProperties?.let {
@@ -79,7 +76,7 @@ class SecretsPlugin : Plugin<Project> {
         }
 
         // Inject build-type specific properties
-        val buildTypeFileName = "${variant.buildType.name}.properties"
+        val buildTypeFileName = "${variant.buildType}.properties"
         val buildTypeProperties = try {
             project.rootProject.loadPropertiesFile(buildTypeFileName)
         } catch (e: FileNotFoundException) {

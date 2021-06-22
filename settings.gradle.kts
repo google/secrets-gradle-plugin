@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-include(":secrets-gradle-plugin", ":sample-app")
+include(":secrets-gradle-plugin")
+include(":sample-app")
 
 pluginManagement {
     repositories {

@@ -25,9 +25,9 @@ java {
 }
 
 dependencies {
-    compileOnly("com.android.tools.build:gradle:4.1.1")
+    compileOnly("com.android.tools.build:gradle:4.2.1")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.4.10")
-    testImplementation("com.android.tools.build:gradle:4.1.1")
+    testImplementation("com.android.tools.build:gradle:4.2.1")
     testImplementation("junit:junit:4.13.1")
     testImplementation("com.nhaarman.mockitokotlin2:mockito-kotlin:2.2.0")
 }
