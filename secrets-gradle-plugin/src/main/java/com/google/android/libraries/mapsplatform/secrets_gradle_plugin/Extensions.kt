@@ -16,9 +16,9 @@
 
 package com.google.android.libraries.mapsplatform.secrets_gradle_plugin
 
-import com.android.build.api.extension.ApplicationAndroidComponentsExtension
-import com.android.build.api.extension.LibraryAndroidComponentsExtension
+import com.android.build.api.variant.ApplicationAndroidComponentsExtension
 import com.android.build.api.variant.BuildConfigField
+import com.android.build.api.variant.LibraryAndroidComponentsExtension
 import com.android.build.api.variant.Variant
 import com.android.build.gradle.AppExtension
 import com.android.build.gradle.LibraryExtension
