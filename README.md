@@ -56,6 +56,31 @@ plugins {
 
 This plugin also supports library module type (`com.android.library`). Just install the plugin in your library-level `build.gradle` file and keys will be visible inside that module as well.
 
+### Snapshot Releases
+
+Snapshot releases, which are distributed via [GitHub Packages](https://github.com/orgs/google/packages?repo_name=secrets-gradle-plugin), are also available for latest fixes. To use a snapshot release, add the following repository to your project-level `build.gradle` file:
+
+Groovy:
+```groovy
+buildscript {
+    repositories {
+        maven {
+            url = uri("https://maven.pkg.github.com/google/secrets-gradle-plugin")
+            credentials {
+                username = project.findProperty("GITHUB_USER") ?: System.getenv("GITHUB_USER")
+                password = project.findProperty("GITHUB_TOKEN") ?: System.getenv("GITHUB_TOKEN")
+            }
+        }
+    }
+    dependencies {
+        classpath "com.google.android.libraries.mapsplatform.secrets-gradle-plugin:secrets-gradle-plugin:<version>-SNAPSHOT"
+    }
+}
+```
+
+Also, see [Authenticating to GitHub Packages](https://docs.github.com/en/packages/learn-github-packages/introduction-to-github-packages#authenticating-to-github-packages).
+
+
 ## Example Usage
 
 Example contents of `local.properties` under your root project:
