@@ -24,7 +24,7 @@ java {
 }
 
 dependencies {
-    compileOnly("com.android.tools.build:gradle:7.0.0-beta04")
+    compileOnly("com.android.tools.build:gradle:7.0.0")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.4.10")
     testImplementation("com.android.tools.build:gradle:7.0.0-beta04")
     testImplementation("junit:junit:4.13.1")
@@ -113,5 +113,5 @@ object PluginInfo {
         "com.google.android.libraries.mapsplatform.secrets_gradle_plugin.SecretsPlugin"
     const val name = "secretsGradlePlugin"
     const val url = "https://github.com/google/secrets-gradle-plugin"
-    const val version = "2.0.0-SNAPSHOT"
+    const val version = "2.0.0"
 }
