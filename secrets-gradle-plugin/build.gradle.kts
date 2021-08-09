@@ -87,14 +87,6 @@ publishing {
             name = "localPluginRepository"
             url = uri("build/repository")
         }
-        maven {
-            name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/google/secrets-gradle-plugin")
-            credentials {
-                username = property("ghGprUser") as? String
-                password = property("ghGprToken") as? String
-            }
-        }
         mavenLocal()
     }
 }
