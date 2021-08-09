@@ -15,7 +15,6 @@
 plugins {
     `java-gradle-plugin`
     `maven-publish`
-    id("com.gradle.plugin-publish") version "0.12.0"
     id("kotlin")
 }
 
@@ -25,9 +24,9 @@ java {
 }
 
 dependencies {
-    compileOnly("com.android.tools.build:gradle:4.2.1")
+    compileOnly("com.android.tools.build:gradle:7.0.0")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.4.10")
-    testImplementation("com.android.tools.build:gradle:4.2.1")
+    testImplementation("com.android.tools.build:gradle:7.0.0-beta04")
     testImplementation("junit:junit:4.13.1")
     testImplementation("com.nhaarman.mockitokotlin2:mockito-kotlin:2.2.0")
 }
@@ -39,20 +38,6 @@ gradlePlugin {
             implementationClass = PluginInfo.implementationClass
             displayName = PluginInfo.displayName
             description = PluginInfo.description
-        }
-    }
-}
-
-pluginBundle {
-    website = PluginInfo.url
-    vcsUrl = PluginInfo.url
-    description = PluginInfo.description
-    version = PluginInfo.version
-
-    (plugins) {
-        PluginInfo.name {
-            displayName = PluginInfo.displayName
-            tags = listOf("kotlin", "android")
         }
     }
 }
@@ -98,18 +83,27 @@ publishing {
         }
     }
     repositories {
-        maven(url = "build/repository")
+        maven {
+            name = "localPluginRepository"
+            url = uri("build/repository")
+        }
         mavenLocal()
     }
 }
 
+project(":secrets-gradle-plugin") {
+    version = PluginInfo.version
+}
+
 object PluginInfo {
-    const val artifactId = "com.google.android.libraries.mapsplatform.secrets-gradle-plugin.gradle.plugin"
+    const val artifactId =
+        "com.google.android.libraries.mapsplatform.secrets-gradle-plugin.gradle.plugin"
     const val description = "A Gradle plugin for providing secrets securely to an Android project."
     const val displayName = "Secrets Gradle Plugin for Android"
     const val group = "com.google.android.libraries.mapsplatform.secrets-gradle-plugin"
-    const val implementationClass = "com.google.android.libraries.mapsplatform.secrets_gradle_plugin.SecretsPlugin"
+    const val implementationClass =
+        "com.google.android.libraries.mapsplatform.secrets_gradle_plugin.SecretsPlugin"
     const val name = "secretsGradlePlugin"
     const val url = "https://github.com/google/secrets-gradle-plugin"
-    const val version = "1.3.0"
+    const val version = "2.0.0"
 }
