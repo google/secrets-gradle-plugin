@@ -63,7 +63,7 @@ fun Variant.inject(properties: Properties, ignore: List<String>) {
     }.filter { key ->
         key.isNotEmpty() && !ignoreRegexs.any { it.containsMatchIn(key) }
     }.forEach { key ->
-        val value = properties.getProperty(key)
+        val value = properties.getProperty(key).removeSurrounding("\"")
         val translatedKey = key.replace(javaVarRegexp, "")
         buildConfigFields.put(
             translatedKey,
