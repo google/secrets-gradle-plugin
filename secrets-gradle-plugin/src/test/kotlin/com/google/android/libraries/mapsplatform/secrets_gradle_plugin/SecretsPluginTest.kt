@@ -90,7 +90,7 @@ class SecretsPluginTest {
         variant.inject(properties = properties, ignore = ignoreList)
 
         check(
-            Pair("key", "\"someValue\"")
+            Pair("key", "someValue")
         )
         checkKeysNotIn("ignoreKey", "sdk.dir", "sdk.foo")
     }
@@ -110,8 +110,8 @@ class SecretsPluginTest {
         variant.inject(properties = properties, ignore = emptyList())
 
         check(
-            Pair("key1", "\"someValue1\""),
-            Pair("key2", "\"someValue2\""),
+            Pair("key1", "someValue1"),
+            Pair("key2", "someValue2"),
         )
     }
 
@@ -130,8 +130,8 @@ class SecretsPluginTest {
         variant.inject(properties = properties, ignore = emptyList())
 
         check(
-            Pair("sdkDir", "\"value\""),
-            Pair("sdkFoo", "\"value2\"")
+            Pair("sdkDir", "value"),
+            Pair("sdkFoo", "value2")
         )
     }
 
@@ -150,7 +150,7 @@ class SecretsPluginTest {
         variant.inject(properties = properties, ignore = emptyList())
 
         check(
-            Pair("key1", "\"value\""),
+            Pair("key1", "value"),
             Pair("key2", "value2")
         )
     }
