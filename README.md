@@ -12,7 +12,7 @@ class and in the Android manifest file.
 
 ## Requirements
 * Gradle-based Android project
-* Android Gradle plugin 7.0.0
+* Android Gradle plugin 7.0.2
 
 ## Installation
 
@@ -24,7 +24,7 @@ Groovy:
 ```groovy
 buildscript {
     dependencies {
-        classpath "com.google.android.libraries.mapsplatform.secrets-gradle-plugin:secrets-gradle-plugin:2.0.0"
+        classpath "com.google.android.libraries.mapsplatform.secrets-gradle-plugin:secrets-gradle-plugin:2.0.1"
     }
 }
 ```
@@ -33,7 +33,7 @@ Kotlin:
 ```kotlin
 buildscript {
     dependencies {
-        classpath("com.google.android.libraries.mapsplatform.secrets-gradle-plugin:secrets-gradle-plugin:2.0.0")
+        classpath("com.google.android.libraries.mapsplatform.secrets-gradle-plugin:secrets-gradle-plugin:2.0.1")
     }
 }
 ```
