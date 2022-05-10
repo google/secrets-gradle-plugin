@@ -99,6 +99,18 @@ After applying the plugin and building your project, the API key then becomes ac
   <meta-data android:value="${apiKey}" />
   ```
 
+## CI/CD Systems
+
+For CI/CD systems, consider creating and checking in version control a default properties file with all
+the same keys required by your app but with _safe_ default values. To do this, create a properties file
+and set the `defaultPropertiesFileName` value to that file name. For example:
+
+```groovy
+secrets {
+    defaultPropertiesFileName = 'local.defaults.properties'
+}
+```
+
 ## Configuration Options
 
 The plugin can optionally be configured:
