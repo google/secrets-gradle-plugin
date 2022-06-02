@@ -14,10 +14,17 @@
 
 package com.google.secrets_gradle_plugin.sample
 
+import android.os.Bundle
+import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
+import com.google.secrets_plugin.sample.BuildConfig
 
 /**
  * Dummy activity. See build.gradle.kts for sample usage of the plugin.
  */
 class MainActivity : AppCompatActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        Log.d("MainActivity", "gmp key: '${BuildConfig.gmpApiKey}'")
+    }
 }
