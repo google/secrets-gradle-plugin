@@ -45,11 +45,16 @@ Groovy:
 plugins {
     id 'com.google.android.libraries.mapsplatform.secrets-gradle-plugin'
 }
+
+buildFeatures {
+    buildConfig true // make sure this is set
+}
 ```
 
 Kotlin:
 ```groovy
 plugins {
+    buildConfig(true)
     id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
 }
 ```
