@@ -22,19 +22,29 @@ class and in the Android manifest file.
 
 Groovy:
 ```groovy
-buildscript {
-    dependencies {
-        classpath "com.google.android.libraries.mapsplatform.secrets-gradle-plugin:secrets-gradle-plugin:2.0.1"
-    }
+plugins {
+    id "com.google.android.libraries.mapsplatform.secrets-gradle-plugin" version "2.0.1" apply false
 }
 ```
 
 Kotlin:
 ```kotlin
-buildscript {
-    dependencies {
-        classpath("com.google.android.libraries.mapsplatform.secrets-gradle-plugin:secrets-gradle-plugin:2.0.1")
-    }
+plugins {
+    id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin") version "2.0.1" apply false
+}
+```
+
+With a TOML version catalog:
+```toml
+[versions]
+secrets = "2.0.1"
+
+[plugins]
+secrets = { id = "com.google.android.libraries.mapsplatform.secrets-gradle-plugin", version.ref = "secrets" }
+```
+```kotlin
+plugins {
+    alias(libs.plugins.secrets) apply false
 }
 ```
 
@@ -51,6 +61,13 @@ Kotlin:
 ```groovy
 plugins {
     id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
+}
+```
+
+With a TOML version catalog:
+```kotlin
+plugins {
+    alias(libs.plugins.secrets)
 }
 ```
 
