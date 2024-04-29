@@ -49,9 +49,9 @@ fun Project.loadPropertiesFile(fileName: String): Properties {
     }
 
     // Load contents into properties object
-    val properties = Properties()
-    properties.load(propertiesFile.inputStream())
-    return properties
+    return Properties().apply {
+        propertiesFile.inputStream().use(::load)
+    }
 }
 
 private val javaVarRegexp = Regex(pattern = "((?![a-zA-Z_\$0-9]).)")
