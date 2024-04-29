@@ -33,14 +33,14 @@ jobs:
         GRADLE_PUBLISH_SECRET: ${{ secrets.GRADLE_PUB_SEC }}
 
     - name: Semantic Release
-      uses: cycjimmy/semantic-release-action@v2
+      uses: cycjimmy/semantic-release-action@v4.1.0
       with:
         extra_plugins: |
-          "@semantic-release/commit-analyzer"
-          "@semantic-release/release-notes-generator"
-          "@google/semantic-release-replace-plugin"
-          "@semantic-release/exec"
-          "@semantic-release/git
-          "@semantic-release/github
+          "@semantic-release/commit-analyzer@8.0.1"
+          "@semantic-release/release-notes-generator@9.0.3"
+          "@google/semantic-release-replace-plugin@1.2.0"
+          "@semantic-release/exec@5.0.0"
+          "@semantic-release/git@9.0.1"
+          "@semantic-release/github@7.2.3"
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
