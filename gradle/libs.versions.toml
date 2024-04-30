@@ -1,0 +1,22 @@
+[versions]
+appcompat= "1.4.2"
+stdlib = "1.6.21"
+material = "1.9.0"
+agp = "7.2.1"
+kotlin = "1.6.21"
+secrets = "2.0.1"
+
+[libraries]
+androidx-appcompat = { module = "com.google.android.material:material",version.ref = "appcompat"}
+material = { module = "com.google.android.material:material", version.ref = "material"}
+kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib-jdk8", version.ref = "stdlib"}
+
+# Plugins
+plugin-agp = { module = "com.android.tools.build:gradle", version.ref = "agp"}
+plugin-kgp = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin"}
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+android-library = { id = "com.android.library", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+sgp = { id = "com.google.android.libraries.mapsplatform.secrets-gradle-plugin", version.ref = "secrets"}
