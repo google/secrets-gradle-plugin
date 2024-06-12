@@ -21,13 +21,12 @@ plugins {
 }
 
 android {
-    compileSdk = 32
-    buildToolsVersion = "30.0.3"
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "com.google.secrets_plugin.sample"
         minSdk = 21
-        targetSdk = 32
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -35,12 +34,13 @@ android {
     kotlinOptions {
         jvmTarget = "1.8"
     }
+    namespace = "com.google.secrets_plugin.sample"
 }
 
 dependencies {
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.6.21")
-    implementation("com.google.android.material:material:1.6.1")
-    implementation("androidx.appcompat:appcompat:1.4.2")
+    implementation(libs.kotlin.stdlib)
+    implementation(libs.material)
+    implementation(libs.appcompat)
 }
 
 // 2. Optionally configure the plugin
