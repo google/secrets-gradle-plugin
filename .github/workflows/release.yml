@@ -29,7 +29,7 @@ jobs:
       with:
         java-version: '17'
         distribution: 'temurin'
-        
+
     - name: Copy secrets to gradle.properties
       run: |
         sed -i -e "s,gradle.publish.key=,gradle.publish.key=$GRADLE_PUBLISH_KEY,g" gradle.properties
