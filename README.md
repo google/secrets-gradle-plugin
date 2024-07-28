@@ -54,7 +54,7 @@ plugins {
 }
 ```
 
-Enable a `BuildConfig` feature:
+3. Enable the `BuildConfig` functionality in the `build.gradle` file at the app level:
 ```groovy
 android {
     buildFeatures {
