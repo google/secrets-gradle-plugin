@@ -19,16 +19,16 @@ plugins {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
 }
 
 dependencies {
-    compileOnly("com.android.tools.build:gradle:7.0.0")
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.4.10")
-    testImplementation("com.android.tools.build:gradle:7.0.0-beta04")
-    testImplementation("junit:junit:4.13.1")
-    testImplementation("com.nhaarman.mockitokotlin2:mockito-kotlin:2.2.0")
+    compileOnly(libs.gradle)
+    implementation(libs.kotlin.stdlib)
+    testImplementation(libs.gradle)
+    testImplementation(libs.junit)
+    testImplementation(libs.mockito.kotlin)
 }
 
 gradlePlugin {
