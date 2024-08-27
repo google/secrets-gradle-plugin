@@ -54,6 +54,15 @@ plugins {
 }
 ```
 
+3. Enable the `BuildConfig` functionality in the `build.gradle` file at the app level:
+```groovy
+android {
+    buildFeatures {
+        buildConfig = true
+    }
+}
+```
+
 This plugin also supports library module type (`com.android.library`). Just install the plugin in your library-level `build.gradle` file and keys will be visible inside that module as well.
 
 ### Snapshot Releases
