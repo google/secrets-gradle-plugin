@@ -24,9 +24,9 @@ java {
 }
 
 dependencies {
-    compileOnly(libs.gradle)
+    compileOnly(libs.agp.api)
     implementation(libs.kotlin.stdlib)
-    testImplementation(libs.gradle)
+    testImplementation(libs.agp.api)
     testImplementation(libs.junit)
     testImplementation(libs.mockito.kotlin)
 }

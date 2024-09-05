@@ -20,9 +20,6 @@ import com.android.build.api.variant.ApplicationAndroidComponentsExtension
 import com.android.build.api.variant.BuildConfigField
 import com.android.build.api.variant.LibraryAndroidComponentsExtension
 import com.android.build.api.variant.Variant
-import com.android.build.gradle.AppExtension
-import com.android.build.gradle.LibraryExtension
-import com.android.build.gradle.internal.core.InternalBaseVariant
 import org.gradle.api.Project
 import java.io.FileNotFoundException
 import java.util.Properties
@@ -32,12 +29,6 @@ fun Project.androidAppComponent(): ApplicationAndroidComponentsExtension? =
 
 fun Project.androidLibraryComponent(): LibraryAndroidComponentsExtension? =
     extensions.findByType(LibraryAndroidComponentsExtension::class.java)
-
-fun Project.androidProject(): AppExtension? =
-    extensions.findByType(AppExtension::class.java)
-
-fun Project.libraryProject(): LibraryExtension? =
-    extensions.findByType(LibraryExtension::class.java)
 
 fun Project.loadPropertiesFile(fileName: String): Properties {
     // Load file
@@ -70,20 +61,6 @@ fun Variant.inject(properties: Properties, ignore: List<String>) {
             BuildConfigField("String", value.addParenthesisIfNeeded(), null)
         )
         manifestPlaceholders.put(translatedKey, value)
-    }
-}
-
-fun InternalBaseVariant.inject(properties: Properties, ignore: List<String>) {
-    val ignoreRegexs = ignore.map { Regex(pattern = it) }
-    properties.keys.map { key ->
-        key as String
-    }.filter { key ->
-        key.isNotEmpty() && !ignoreRegexs.any { it.containsMatchIn(key) }
-    }.forEach { key ->
-        val value = properties.getProperty(key).removeSurrounding("\"")
-        val translatedKey = key.replace(javaVarRegexp, "")
-        buildConfigField("String", translatedKey, value.addParenthesisIfNeeded())
-        mergedFlavor.manifestPlaceholders[translatedKey] = value
     }
 }
 

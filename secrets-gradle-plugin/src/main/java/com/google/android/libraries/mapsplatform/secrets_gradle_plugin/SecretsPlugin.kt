@@ -16,7 +16,6 @@
 package com.google.android.libraries.mapsplatform.secrets_gradle_plugin
 
 import com.android.build.api.variant.Variant
-import com.android.build.gradle.internal.core.InternalBaseVariant
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import java.io.FileNotFoundException
