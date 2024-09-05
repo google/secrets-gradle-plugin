@@ -12,13 +12,35 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-include(":secrets-gradle-plugin")
-include(":sample-app")
-
 pluginManagement {
     repositories {
-        mavenLocal()
-        maven(url = "./plugin/build/repository")
+        google {
+            mavenContent {
+                includeGroupAndSubgroups("androidx")
+                includeGroupAndSubgroups("com.android")
+                includeGroupAndSubgroups("com.google")
+            }
+        }
+        mavenCentral()
         gradlePluginPortal()
     }
+
+    includeBuild("secrets-gradle-plugin")
 }
+
+dependencyResolutionManagement {
+    repositories {
+        google {
+            mavenContent {
+                includeGroupAndSubgroups("androidx")
+                includeGroupAndSubgroups("com.android")
+                includeGroupAndSubgroups("com.google")
+            }
+        }
+        mavenCentral()
+    }
+}
+
+rootProject.name = "secrets-gradle-plugin-root"
+
+include(":sample-app")
