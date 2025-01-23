@@ -38,6 +38,13 @@ buildscript {
 }
 ```
 
+Version Catalog:
+```groovy/kotlin
+plugins {
+    alias(libs.plugins.secrets) apply false
+}
+```
+
 2. In your app-level `build.gradle` file:
 
 Groovy:
@@ -52,6 +59,22 @@ Kotlin:
 plugins {
     id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
 }
+```
+
+Version Catalog:
+```groovy/kotlin
+plugins {
+    alias(libs.plugins.secrets) apply false
+}
+```
+
+3. (Optional) In your `gradle/libs.versions.toml` file: (If using Version Catalog)
+
+```TOML
+[versions]
+secrets = "2.0.1"
+[plugins]
+secrets = { id = "com.google.android.libraries.mapsplatform.secrets-gradle-plugin", version.ref = "secrets" }
 ```
 
 This plugin also supports library module type (`com.android.library`). Just install the plugin in your library-level `build.gradle` file and keys will be visible inside that module as well.
