@@ -14,6 +14,7 @@
 
 package com.google.android.libraries.mapsplatform.secrets_gradle_plugin
 
+import com.android.build.api.variant.TestComponent
 import com.android.build.gradle.internal.core.InternalBaseVariant
 import com.nhaarman.mockitokotlin2.doReturn
 import com.nhaarman.mockitokotlin2.mock
@@ -93,6 +94,28 @@ class SecretsPluginTest {
             Pair("key", "someValue")
         )
         checkKeysNotIn("ignoreKey", "sdk.dir", "sdk.foo")
+    }
+
+    @Test
+    fun `test component receives manifest placeholders`() {
+        val fileName = "local.properties"
+        val propertiesFile = tempFolder.newFile(fileName)
+        propertiesFile.writeText(
+            """
+            MAPS_API_KEY="someValue"
+            ignoreKey="sadf"
+        """.trimIndent()
+        )
+        val properties = project.rootProject.loadPropertiesFile(fileName)
+        val testPlaceholders = project.objects.mapProperty(String::class.java, String::class.java)
+        val testComponent = mock<TestComponent> {
+            on { manifestPlaceholders } doReturn testPlaceholders
+        }
+
+        testComponent.inject(properties = properties, ignore = listOf("ignoreKey"))
+
+        Assert.assertEquals("someValue", testPlaceholders.get()["MAPS_API_KEY"])
+        Assert.assertFalse(testPlaceholders.get().containsKey("ignoreKey"))
     }
 
     @Test

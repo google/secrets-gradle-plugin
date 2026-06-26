@@ -19,6 +19,7 @@ package com.google.android.libraries.mapsplatform.secrets_gradle_plugin
 import com.android.build.api.variant.ApplicationAndroidComponentsExtension
 import com.android.build.api.variant.BuildConfigField
 import com.android.build.api.variant.LibraryAndroidComponentsExtension
+import com.android.build.api.variant.TestComponent
 import com.android.build.api.variant.Variant
 import com.android.build.gradle.AppExtension
 import com.android.build.gradle.LibraryExtension
@@ -69,6 +70,20 @@ fun Variant.inject(properties: Properties, ignore: List<String>) {
             translatedKey,
             BuildConfigField("String", value.addParenthesisIfNeeded(), null)
         )
+        manifestPlaceholders.put(translatedKey, value)
+    }
+}
+
+/** Test components only expose [manifestPlaceholders] (no BuildConfig), so inject just those. */
+fun TestComponent.inject(properties: Properties, ignore: List<String>) {
+    val ignoreRegexs = ignore.map { Regex(pattern = it) }
+    properties.keys.map { key ->
+        key as String
+    }.filter { key ->
+        key.isNotEmpty() && !ignoreRegexs.any { it.containsMatchIn(key) }
+    }.forEach { key ->
+        val value = properties.getProperty(key).removeSurrounding("\"")
+        val translatedKey = key.replace(javaVarRegexp, "")
         manifestPlaceholders.put(translatedKey, value)
     }
 }

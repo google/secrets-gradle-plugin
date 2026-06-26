@@ -1,5 +1,7 @@
 [versions]
-gradle = "7.0.4"
+# 7.4.0 is the first AGP exposing `manifestPlaceholders` on test components; kept minimal
+# for AGP 7.x consumers. Sample app and tests still build against `gradleVersion` below.
+gradle = "7.4.0"
 gradleVersion = "8.4.2"
 junit = "4.13.2"
 kotlin = "1.9.24"
