@@ -1,5 +1,4 @@
 [versions]
-gradle = "7.0.4"
 gradleVersion = "8.4.2"
 junit = "4.13.2"
 kotlin = "1.9.24"
@@ -10,7 +9,7 @@ mockitoKotlin = "2.2.0"
 secretsGradlePlugin = "2.0.1"
 
 [libraries]
-gradle = { module = "com.android.tools.build:gradle", version.ref = "gradle" }
+agp-api = "com.android.tools.build:gradle-api:7.0.4"
 gradle-v842 = { module = "com.android.tools.build:gradle", version.ref = "gradleVersion" }
 junit = { module = "junit:junit", version.ref = "junit" }
 kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlinGradlePlugin" }
