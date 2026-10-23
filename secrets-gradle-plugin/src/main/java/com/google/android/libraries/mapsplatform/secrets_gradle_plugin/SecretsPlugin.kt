@@ -15,6 +15,7 @@
 
 package com.google.android.libraries.mapsplatform.secrets_gradle_plugin
 
+import com.android.build.api.variant.TestComponent
 import com.android.build.api.variant.Variant
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -67,11 +68,11 @@ class SecretsPlugin : Plugin<Project> {
     ) {
         // Inject defaults first
         defaultProperties?.let {
-            variant.inject(it, extension.ignoreList)
+            variant.injectWithTestComponents(it, extension.ignoreList)
         }
 
         properties?.let {
-            variant.inject(properties, extension.ignoreList)
+            variant.injectWithTestComponents(properties, extension.ignoreList)
         }
 
         // Inject build-type specific properties
@@ -82,7 +83,7 @@ class SecretsPlugin : Plugin<Project> {
             null
         }
         buildTypeProperties?.let {
-            variant.inject(it, extension.ignoreList)
+            variant.injectWithTestComponents(it, extension.ignoreList)
         }
 
         // Inject flavor-specific properties
@@ -93,7 +94,16 @@ class SecretsPlugin : Plugin<Project> {
             null
         }
         flavorProperties?.let {
-            variant.inject(it, extension.ignoreList)
+            variant.injectWithTestComponents(it, extension.ignoreList)
+        }
+    }
+
+    // Inject the main variant plus its test components, whose manifests reference the same
+    // placeholders; otherwise AGP fails the test manifest merge with "no value provided".
+    private fun Variant.injectWithTestComponents(properties: Properties, ignore: List<String>) {
+        inject(properties, ignore)
+        nestedComponents.filterIsInstance<TestComponent>().forEach { testComponent ->
+            testComponent.inject(properties, ignore)
         }
     }
 }
