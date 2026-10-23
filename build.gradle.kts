@@ -12,12 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+buildscript {
+    dependencies {
+        classpath(libs.kotlin.gradle.plugin)
+    }
+}
+
 plugins {
     alias(libs.plugins.android.application) apply false
-    alias(libs.plugins.kotlin.android) apply false
-    alias(libs.plugins.kotlin.jvm) apply false
 }
 
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
+    dependsOn(gradle.includedBuild("secrets-gradle-plugin").task(":clean"))
 }

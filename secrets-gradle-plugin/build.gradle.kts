@@ -12,23 +12,86 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import java.util.Properties
+import org.gradle.api.attributes.plugin.GradlePluginApiVersion
+import org.gradle.plugin.devel.tasks.PluginUnderTestMetadata
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
+
 plugins {
     `java-gradle-plugin`
     `maven-publish`
     alias(libs.plugins.kotlin.jvm)
 }
 
+group = PluginInfo.group
+version = PluginInfo.version
+
 java {
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
 }
 
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_17)
+        apiVersion.set(KotlinVersion.KOTLIN_2_2)
+        languageVersion.set(KotlinVersion.KOTLIN_2_2)
+    }
+}
+
+val agpTestRuntime: Configuration = configurations.create("agpTestRuntime")
+
+tasks.named<PluginUnderTestMetadata>("pluginUnderTestMetadata") {
+    pluginClasspath.from(agpTestRuntime)
+}
+
+tasks.withType<Test>().configureEach {
+    // Isolate user.home and Android home inside buildDirectory so Gradle ProjectBuilder and
+    // TestKit functional tests run cleanly in restricted/sandboxed environments.
+    val testHome = layout.buildDirectory.dir("test-home").get().asFile
+    val androidUserHome = layout.buildDirectory.dir("android-home").get().asFile
+    val testKitDir = layout.buildDirectory.dir("testkit").get().asFile
+    doFirst {
+        testHome.mkdirs()
+        androidUserHome.mkdirs()
+        testKitDir.mkdirs()
+    }
+    systemProperty("user.home", testHome.absolutePath)
+    systemProperty("testkit.dir", testKitDir.absolutePath)
+    environment("ANDROID_USER_HOME", androidUserHome.absolutePath)
+    val androidSdkDir = System.getenv("ANDROID_HOME")
+        ?: System.getenv("ANDROID_SDK_ROOT")
+        ?: rootDir.parentFile.resolve("local.properties").takeIf { it.isFile }?.let { file ->
+            Properties().apply { file.inputStream().use(::load) }.getProperty("sdk.dir")
+        }
+    if (androidSdkDir != null) {
+        environment("ANDROID_HOME", androidSdkDir)
+        environment("ANDROID_SDK_ROOT", androidSdkDir)
+    }
+}
+
+// Declare compatibility with Gradle 8.0+ in published Gradle Module Metadata so that
+// consumers on Gradle 8.x are not forced to upgrade to Gradle 9.x to resolve the plugin.
+configurations.matching { it.name == "apiElements" || it.name == "runtimeElements" }.configureEach {
+    attributes {
+        attribute(
+            GradlePluginApiVersion.GRADLE_PLUGIN_API_VERSION_ATTRIBUTE,
+            objects.named(GradlePluginApiVersion::class.java, "8.0")
+        )
+    }
+}
+
 dependencies {
     compileOnly(libs.agp.api)
-    implementation(libs.kotlin.stdlib)
+    compileOnly(libs.kotlin.stdlib)
+    agpTestRuntime(libs.android.gradle.plugin)
     testImplementation(libs.agp.api)
+    testImplementation(libs.kotlin.stdlib)
     testImplementation(libs.junit)
     testImplementation(libs.mockito.kotlin)
+    testImplementation(libs.byte.buddy)
+    testImplementation(libs.byte.buddy.agent)
 }
 
 gradlePlugin {
@@ -43,41 +106,34 @@ gradlePlugin {
 }
 
 publishing {
-    publications {
-        create<MavenPublication>("mavenPub") {
-            group = PluginInfo.group
-            artifactId = PluginInfo.artifactId
-            version = PluginInfo.version
+    publications.withType<MavenPublication>().configureEach {
+        pom {
+            name.set(PluginInfo.displayName)
+            description.set(PluginInfo.description)
+            url.set(PluginInfo.url)
 
-            pom {
-                name.set(PluginInfo.artifactId)
-                description.set(PluginInfo.description)
+            scm {
+                connection.set("scm:git@github.com:google/secrets-gradle-plugin.git")
+                developerConnection.set("scm:git@github.com:google/secrets-gradle-plugin.git")
                 url.set(PluginInfo.url)
+            }
 
-                scm {
-                    connection.set("scm:git@github.com:google/secrets-gradle-plugin.git")
-                    developerConnection.set("scm:git@github.com:google/secrets-gradle-plugin.git")
-                    url.set(PluginInfo.url)
+            licenses {
+                license {
+                    name.set("The Apache Software License, Version 2.0")
+                    url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
+                    distribution.set("repo")
                 }
+            }
 
-                licenses {
-                    license {
-                        name.set("The Apache Software License, Version 2.0")
-                        url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
-                        distribution.set("repo")
-                    }
-                }
+            organization {
+                name.set("Google Inc.")
+                url.set("https://developers.google.com/maps")
+            }
 
-                organization {
+            developers {
+                developer {
                     name.set("Google Inc.")
-                    url.set("https://developers.google.com/maps")
-                }
-
-
-                developers {
-                    developer {
-                        name.set("Google Inc.")
-                    }
                 }
             }
         }
@@ -85,13 +141,11 @@ publishing {
     repositories {
         maven {
             name = "localPluginRepository"
-            url = uri("build/repository")
+            url = uri(layout.buildDirectory.dir("repository"))
         }
         mavenLocal()
     }
 }
-
-version = PluginInfo.version
 
 object PluginInfo {
     const val artifactId =
