@@ -1,5 +1,4 @@
 [versions]
-gradle = "7.0.4"
 agp = "8.4.2"
 junit = "4.13.2"
 kotlin = "1.9.24"
@@ -9,7 +8,7 @@ appcompat = "1.7.0"
 mockitoKotlin = "2.2.0"
 
 [libraries]
-gradle = { module = "com.android.tools.build:gradle", version.ref = "gradle" }
+agp-api = { module = "com.android.tools.build:gradle-api", version.ref = "agp" }
 junit = { module = "junit:junit", version.ref = "junit" }
 kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlinGradlePlugin" }
 kotlin-stdlib = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib-jdk8", version.ref = "kotlin" }
