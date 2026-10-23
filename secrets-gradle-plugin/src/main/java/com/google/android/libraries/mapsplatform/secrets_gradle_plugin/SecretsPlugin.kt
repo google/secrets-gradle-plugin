@@ -15,6 +15,9 @@
 
 package com.google.android.libraries.mapsplatform.secrets_gradle_plugin
 
+import com.android.build.api.variant.AndroidComponentsExtension
+import com.android.build.api.variant.HasAndroidTest
+import com.android.build.api.variant.HasUnitTest
 import com.android.build.api.variant.TestComponent
 import com.android.build.api.variant.Variant
 import org.gradle.api.Plugin
@@ -23,39 +26,67 @@ import java.io.FileNotFoundException
 import java.util.Properties
 
 /**
- * Plugin that reads secrets from a properties file and injects manifest build and BuildConfig
- * variables into an Android project. Since property keys are turned into Java variables,
- * invalid variable characters from the property key are removed.
+ * Gradle plugin that reads secrets from `.properties` files not checked into version control
+ * and injects them as `AndroidManifest.xml` placeholders and `BuildConfig` fields across
+ * Android variants.
  *
- * e.g.
- * A key defined as "sdk.dir" in the properties file will be converted to "sdkdir".
+ * Since property keys are turned into Java identifiers in `BuildConfig`, characters that are not
+ * valid in Java variable names are stripped (for example, `"sdk.dir"` becomes `"sdkdir"`).
  */
 class SecretsPlugin : Plugin<Project> {
 
     private val extensionName = "secrets"
+
+    private val supportedPlugins = listOf(
+        "com.android.application",
+        "com.android.library",
+        "com.android.test",
+        "com.android.dynamic-feature"
+    )
 
     override fun apply(project: Project) {
         val extension = project.extensions.create(
             extensionName,
             SecretsPluginExtension::class.java
         )
-        val supportedComponents =
-            listOf(project.androidAppComponent(), project.androidLibraryComponent())
-        supportedComponents.forEach { component ->
-            component?.onVariants { variant ->
-                val defaultProperties = extension.defaultPropertiesFileName?.let {
-                    project.rootProject.loadPropertiesFile(it)
+        // Use pluginManager.withPlugin so that plugin declaration order in plugins {} never
+        // causes silent failures (Issue #62), and support all Android module types including
+        // baselineprofile / com.android.test modules (Issue #91).
+        supportedPlugins.forEach { pluginId ->
+            project.pluginManager.withPlugin(pluginId) {
+                project.androidComponents()?.let { component ->
+                    configureVariants(project, extension, component)
                 }
-
-                val properties: Properties? = try {
-                    project.rootProject.loadPropertiesFile(
-                        extension.propertiesFileName
-                    )
-                } catch (e: FileNotFoundException) {
-                    defaultProperties ?: throw e
-                }
-                generateConfigKey(project, extension, defaultProperties, properties, variant)
             }
+        }
+    }
+
+    internal fun configureVariants(
+        project: Project,
+        extension: SecretsPluginExtension,
+        component: AndroidComponentsExtension<*, *, *>
+    ) {
+        component.onVariants { variant ->
+            val defaultProperties = extension.defaultPropertiesFileName?.let {
+                project.loadRootOrModulePropertiesFile(it)
+            }
+
+            val properties: Properties? = try {
+                project.loadRootOrModulePropertiesFile(
+                    extension.propertiesFileName
+                )
+            } catch (e: FileNotFoundException) {
+                defaultProperties ?: throw e
+            }
+            val injectBuildConfig = project.isBuildConfigEnabled(component)
+            generateConfigKey(
+                project = project,
+                extension = extension,
+                defaultProperties = defaultProperties,
+                properties = properties,
+                variant = variant,
+                injectBuildConfig = injectBuildConfig
+            )
         }
     }
 
@@ -64,45 +95,80 @@ class SecretsPlugin : Plugin<Project> {
         extension: SecretsPluginExtension,
         defaultProperties: Properties?,
         properties: Properties?,
-        variant: Variant
+        variant: Variant,
+        injectBuildConfig: Boolean
     ) {
-        // Inject defaults first
+        // 1. Inject defaults first (lowest precedence)
         defaultProperties?.let {
-            variant.injectWithTestComponents(it, extension.ignoreList)
+            variant.injectWithTestComponents(it, extension.ignoreList, injectBuildConfig)
         }
 
+        // 2. Inject main properties file (overrides defaults)
         properties?.let {
-            variant.injectWithTestComponents(properties, extension.ignoreList)
+            variant.injectWithTestComponents(it, extension.ignoreList, injectBuildConfig)
         }
 
-        // Inject build-type specific properties
-        val buildTypeFileName = "${variant.buildType}.properties"
-        val buildTypeProperties = try {
-            project.rootProject.loadPropertiesFile(buildTypeFileName)
-        } catch (e: FileNotFoundException) {
-            null
-        }
-        buildTypeProperties?.let {
-            variant.injectWithTestComponents(it, extension.ignoreList)
+        // 3. Inject build-type specific properties (e.g., debug.properties, release.properties)
+        val buildType = variant.buildType
+        if (!buildType.isNullOrEmpty()) {
+            val buildTypeFileName = "$buildType.properties"
+            val buildTypeProperties = try {
+                project.loadRootOrModulePropertiesFile(buildTypeFileName)
+            } catch (e: FileNotFoundException) {
+                null
+            }
+            buildTypeProperties?.let {
+                variant.injectWithTestComponents(it, extension.ignoreList, injectBuildConfig)
+            }
         }
 
-        // Inject flavor-specific properties
-        val flavorFileName = "${variant.flavorName}.properties"
-        val flavorProperties = try {
-            project.rootProject.loadPropertiesFile(flavorFileName)
-        } catch (e: FileNotFoundException) {
-            null
+        // 4. Inject product-flavor specific properties (e.g., free.properties, paid.properties)
+        val flavorName = variant.flavorName
+        if (!flavorName.isNullOrEmpty()) {
+            val flavorFileName = "$flavorName.properties"
+            val flavorProperties = try {
+                project.loadRootOrModulePropertiesFile(flavorFileName)
+            } catch (e: FileNotFoundException) {
+                null
+            }
+            flavorProperties?.let {
+                variant.injectWithTestComponents(it, extension.ignoreList, injectBuildConfig)
+            }
         }
-        flavorProperties?.let {
-            variant.injectWithTestComponents(it, extension.ignoreList)
+
+        // 5. Inject combined variant-specific properties (e.g., freeDebug.properties) when the
+        // variant name is distinct from both buildType and flavorName (Issue #59).
+        val variantName = variant.name
+        if (variantName.isNotEmpty() && variantName != buildType && variantName != flavorName) {
+            val variantFileName = "$variantName.properties"
+            val variantProperties = try {
+                project.loadRootOrModulePropertiesFile(variantFileName)
+            } catch (e: FileNotFoundException) {
+                null
+            }
+            variantProperties?.let {
+                variant.injectWithTestComponents(it, extension.ignoreList, injectBuildConfig)
+            }
         }
     }
 
-    // Inject the main variant plus its test components, whose manifests reference the same
-    // placeholders; otherwise AGP fails the test manifest merge with "no value provided".
-    private fun Variant.injectWithTestComponents(properties: Properties, ignore: List<String>) {
-        inject(properties, ignore)
-        nestedComponents.filterIsInstance<TestComponent>().forEach { testComponent ->
+    /**
+     * Injects secrets into both the main [Variant] and its nested [TestComponent]s (`UnitTest`
+     * and `AndroidTest`) so test manifest merging resolves all `${...}` placeholders (Issue #41,
+     * PR #107).
+     */
+    private fun Variant.injectWithTestComponents(
+        properties: Properties,
+        ignore: List<String>,
+        injectBuildConfig: Boolean
+    ) {
+        inject(properties, ignore, injectBuildConfig)
+        val testComponents = buildSet {
+            addAll(nestedComponents.filterIsInstance<TestComponent>())
+            (this@injectWithTestComponents as? HasUnitTest)?.unitTest?.let(::add)
+            (this@injectWithTestComponents as? HasAndroidTest)?.androidTest?.let(::add)
+        }
+        testComponents.forEach { testComponent ->
             testComponent.inject(properties, ignore)
         }
     }

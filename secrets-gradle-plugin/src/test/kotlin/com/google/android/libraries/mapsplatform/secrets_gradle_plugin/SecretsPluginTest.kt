@@ -14,23 +14,38 @@
 
 package com.google.android.libraries.mapsplatform.secrets_gradle_plugin
 
+import com.android.build.api.AndroidPluginVersion
+import com.android.build.api.dsl.BuildFeatures
+import com.android.build.api.dsl.CommonExtension
+import com.android.build.api.variant.AndroidComponentsExtension
+import com.android.build.api.variant.AndroidTest
+import com.android.build.api.variant.ApplicationVariant
 import com.android.build.api.variant.BuildConfigField
 import com.android.build.api.variant.TestComponent
+import com.android.build.api.variant.UnitTest
 import com.android.build.api.variant.Variant
-import com.nhaarman.mockitokotlin2.doReturn
-import com.nhaarman.mockitokotlin2.mock
+import com.android.build.api.variant.VariantSelector
+import org.gradle.api.Action
+import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.ProjectConfigurationException
-import org.gradle.api.internal.project.ProjectInternal
 import org.gradle.testfixtures.ProjectBuilder
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import org.mockito.kotlin.any
+import org.mockito.kotlin.anyOrNull
+import org.mockito.kotlin.argumentCaptor
+import org.mockito.kotlin.doReturn
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.never
+import org.mockito.kotlin.verify
+import org.mockito.kotlin.whenever
+import java.io.FileNotFoundException
 
 class SecretsPluginTest {
 
@@ -48,29 +63,43 @@ class SecretsPluginTest {
             .withProjectDir(tempFolder.root)
             .withName("root")
             .build()
+        val moduleDir = tempFolder.root.resolve("project").apply { mkdirs() }
         project = ProjectBuilder.builder()
-            .withProjectDir(tempFolder.root.resolve("project"))
+            .withProjectDir(moduleDir)
             .withName("project")
             .withParent(root)
             .build()
         variant = mock {
             on { buildConfigFields } doReturn
-                    project.objects.mapProperty(String::class.java, BuildConfigField::class.java)
+                project.objects.mapProperty(String::class.java, BuildConfigField::class.java)
             on { manifestPlaceholders } doReturn
-                    project.objects.mapProperty(String::class.java, String::class.java)
+                project.objects.mapProperty(String::class.java, String::class.java)
         }
         project.pluginManager.apply("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
     }
 
-    // TODO: This exception is no longer thrown since migrating to use onVariants API. Need to
-    // reenable this test
-    @Ignore
-    @Test(expected = ProjectConfigurationException::class)
-    fun `missing default properties fails`() {
-        project.extensions.configure(SecretsPluginExtension::class.java) {
-            it.propertiesFileName = "test.properties"
-        }
-        (project as ProjectInternal).evaluate()
+    @Test(expected = FileNotFoundException::class)
+    fun `missing properties file throws FileNotFoundException`() {
+        project.loadRootOrModulePropertiesFile("nonexistent.properties")
+    }
+
+    @Test
+    fun `module local properties file is loaded as fallback when root file is absent`() {
+        val moduleFile = project.projectDir.resolve("module-secrets.properties")
+        moduleFile.writeText("MODULE_KEY=moduleSecretValue\n")
+
+        val properties = project.loadRootOrModulePropertiesFile("module-secrets.properties")
+        assertEquals("moduleSecretValue", properties.getProperty("MODULE_KEY"))
+    }
+
+    @Test
+    fun `extension ignoreList mutations do not leak across plugin instances`() {
+        val ext1 = SecretsPluginExtension()
+        ext1.ignoreList.add("customIgnore")
+
+        val ext2 = SecretsPluginExtension()
+        assertFalse(ext2.ignoreList.contains("customIgnore"))
+        assertEquals(listOf("sdk.dir"), SecretsPluginExtension.defaultIgnoreList)
     }
 
     @Test
@@ -83,9 +112,9 @@ class SecretsPluginTest {
             ignoreKey="sadf"
             sdk.dir="di"
             sdk.foo="di"
-        """.trimIndent()
+            """.trimIndent()
         )
-        val properties = project.rootProject.loadPropertiesFile(fileName)
+        val properties = project.loadRootOrModulePropertiesFile(fileName)
         val ignoreList = listOf("ignoreKey", "sdk*")
 
         variant.inject(properties = properties, ignore = ignoreList)
@@ -104,9 +133,9 @@ class SecretsPluginTest {
             """
             MAPS_API_KEY="someValue"
             ignoreKey="sadf"
-        """.trimIndent()
+            """.trimIndent()
         )
-        val properties = project.rootProject.loadPropertiesFile(fileName)
+        val properties = project.loadRootOrModulePropertiesFile(fileName)
         val testPlaceholders = project.objects.mapProperty(String::class.java, String::class.java)
         val testComponent = mock<TestComponent> {
             on { manifestPlaceholders } doReturn testPlaceholders
@@ -119,6 +148,28 @@ class SecretsPluginTest {
     }
 
     @Test
+    fun `buildConfigFields are not accessed when injectBuildConfig is false`() {
+        val fileName = "local.properties"
+        val propertiesFile = tempFolder.newFile(fileName)
+        propertiesFile.writeText("MAPS_API_KEY=manifestOnlyValue\n")
+        val properties = project.loadRootOrModulePropertiesFile(fileName)
+
+        val manifestMap = project.objects.mapProperty(String::class.java, String::class.java)
+        val manifestOnlyVariant = mock<Variant> {
+            on { manifestPlaceholders } doReturn manifestMap
+        }
+
+        manifestOnlyVariant.inject(
+            properties = properties,
+            ignore = emptyList(),
+            injectBuildConfig = false
+        )
+
+        assertEquals("manifestOnlyValue", manifestMap.getting("MAPS_API_KEY").get())
+        verify(manifestOnlyVariant, never()).buildConfigFields
+    }
+
+    @Test
     fun `properties are correctly added`() {
         val fileName = "local.properties"
         val propertiesFile = tempFolder.newFile(fileName)
@@ -126,9 +177,9 @@ class SecretsPluginTest {
             """
             key1="someValue1"
             key2="someValue2"
-        """.trimIndent()
+            """.trimIndent()
         )
-        val properties = project.rootProject.loadPropertiesFile(fileName)
+        val properties = project.loadRootOrModulePropertiesFile(fileName)
 
         variant.inject(properties = properties, ignore = emptyList())
 
@@ -146,9 +197,9 @@ class SecretsPluginTest {
             """
             sdk.Dir="value"
             sdk.Foo!="value2"
-        """.trimIndent()
+            """.trimIndent()
         )
-        val properties = project.rootProject.loadPropertiesFile(fileName)
+        val properties = project.loadRootOrModulePropertiesFile(fileName)
 
         variant.inject(properties = properties, ignore = emptyList())
 
@@ -166,9 +217,9 @@ class SecretsPluginTest {
             """
             key1="value"
             key2=value2
-        """.trimIndent()
+            """.trimIndent()
         )
-        val properties = project.rootProject.loadPropertiesFile(fileName)
+        val properties = project.loadRootOrModulePropertiesFile(fileName)
 
         variant.inject(properties = properties, ignore = emptyList())
 
@@ -178,13 +229,146 @@ class SecretsPluginTest {
         )
     }
 
+    @Test
+    fun `empty property value produces valid empty Java string literal`() {
+        val fileName = "local.properties"
+        val propertiesFile = tempFolder.newFile(fileName)
+        propertiesFile.writeText(
+            """
+            emptyUnquoted=
+            emptyQuoted=""
+            """.trimIndent()
+        )
+        val properties = project.loadRootOrModulePropertiesFile(fileName)
+
+        variant.inject(properties = properties, ignore = emptyList())
+
+        assertEquals("", variant.manifestPlaceholders.getting("emptyUnquoted").get())
+        assertEquals("\"\"", variant.buildConfigFields!!.getting("emptyUnquoted").get().value)
+        assertEquals("", variant.manifestPlaceholders.getting("emptyQuoted").get())
+        assertEquals("\"\"", variant.buildConfigFields!!.getting("emptyQuoted").get().value)
+    }
+
+    @Test
+    fun `windows paths with backslashes are escaped for BuildConfig`() {
+        val fileName = "local.properties"
+        val propertiesFile = tempFolder.newFile(fileName)
+        propertiesFile.writeText(
+            """
+            flutter.sdk=C\:\\Users\\dev\\flutter
+            """.trimIndent()
+        )
+        val properties = project.loadRootOrModulePropertiesFile(fileName)
+
+        variant.inject(properties = properties, ignore = emptyList())
+
+        assertEquals("C:\\Users\\dev\\flutter", variant.manifestPlaceholders.getting("fluttersdk").get())
+        assertEquals(
+            "\"C:\\\\Users\\\\dev\\\\flutter\"",
+            variant.buildConfigFields!!.getting("fluttersdk").get().value
+        )
+    }
+
+    @Test
+    fun `plugin applied before Android plugin still configures variants and test components`() {
+        tempFolder.newFile("defaults.properties").writeText(
+            """
+            kDefault=fromDefault
+            kOverride=fromDefault
+            """.trimIndent()
+        )
+        tempFolder.newFile("local.properties").writeText(
+            """
+            kOverride=fromLocal
+            kBuildType=fromLocal
+            """.trimIndent()
+        )
+        tempFolder.newFile("debug.properties").writeText(
+            """
+            kBuildType=fromDebug
+            kFlavor=fromDebug
+            """.trimIndent()
+        )
+        tempFolder.newFile("demo.properties").writeText(
+            """
+            kFlavor=fromDemo
+            kVariant=fromDemo
+            """.trimIndent()
+        )
+        tempFolder.newFile("demoDebug.properties").writeText(
+            """
+            kVariant=fromDemoDebug
+            """.trimIndent()
+        )
+
+        // Apply SecretsPlugin BEFORE applying an Android plugin (Issue #62).
+        project.pluginManager.apply(SecretsPlugin::class.java)
+        val extension = project.extensions.getByType(SecretsPluginExtension::class.java)
+        extension.defaultPropertiesFileName = "defaults.properties"
+
+        // Register mock androidComponents and android extensions and apply dummy com.android.test plugin (#91).
+        val selector = mock<VariantSelector>()
+        whenever(selector.all()).thenReturn(selector)
+        val androidComponents = mock<AndroidComponentsExtension<*, *, Variant>> {
+            on { selector() } doReturn selector
+            on { pluginVersion } doReturn AndroidPluginVersion(9, 0)
+        }
+        val buildFeaturesMock = mock<BuildFeatures> {
+            on { buildConfig } doReturn true
+        }
+        val commonExtension = mock<CommonExtension<*, *, *, *, *, *>> {
+            on { buildFeatures } doReturn buildFeaturesMock
+        }
+        project.extensions.add(AndroidComponentsExtension::class.java, "androidComponents", androidComponents)
+        project.extensions.add(CommonExtension::class.java, "android", commonExtension)
+
+        // Configure variants via SecretsPlugin (real plugin ordering and com.android.test are verified in SecretsPluginFunctionalTest).
+        SecretsPlugin().configureVariants(project, extension, androidComponents)
+
+        val callbackCaptor = argumentCaptor<(Variant) -> Unit>()
+        verify(androidComponents).onVariants(anyOrNull(), callbackCaptor.capture())
+
+        val unitTestComponent = mock<UnitTest> {
+            on { manifestPlaceholders } doReturn
+                project.objects.mapProperty(String::class.java, String::class.java)
+        }
+        val androidTestComponent = mock<AndroidTest> {
+            on { manifestPlaceholders } doReturn
+                project.objects.mapProperty(String::class.java, String::class.java)
+        }
+        val fullVariant = mock<ApplicationVariant> {
+            on { name } doReturn "demoDebug"
+            on { buildType } doReturn "debug"
+            on { flavorName } doReturn "demo"
+            on { buildConfigFields } doReturn
+                project.objects.mapProperty(String::class.java, BuildConfigField::class.java)
+            on { manifestPlaceholders } doReturn
+                project.objects.mapProperty(String::class.java, String::class.java)
+            on { nestedComponents } doReturn listOf(unitTestComponent, androidTestComponent)
+            on { androidTest } doReturn androidTestComponent
+        }
+
+        callbackCaptor.firstValue.invoke(fullVariant)
+
+        // Verify precedence: defaults < local < buildType < flavor < variantName (#59)
+        assertEquals("fromDefault", fullVariant.manifestPlaceholders.getting("kDefault").get())
+        assertEquals("fromLocal", fullVariant.manifestPlaceholders.getting("kOverride").get())
+        assertEquals("fromDebug", fullVariant.manifestPlaceholders.getting("kBuildType").get())
+        assertEquals("fromDemo", fullVariant.manifestPlaceholders.getting("kFlavor").get())
+        assertEquals("fromDemoDebug", fullVariant.manifestPlaceholders.getting("kVariant").get())
+
+        // Verify both unitTest and androidTest components received manifest placeholders (#41, #89, #96, #104)
+        assertEquals("fromDemoDebug", unitTestComponent.manifestPlaceholders.getting("kVariant").get())
+        assertEquals("fromDemoDebug", androidTestComponent.manifestPlaceholders.getting("kVariant").get())
+    }
+
     private fun check(vararg keyValues: Pair<String, String>) {
         keyValues.forEach { (key, value) ->
             assertEquals(value, variant.manifestPlaceholders.getting(key).get())
-            variant.buildConfigFields.getting(key).get().let {
+            variant.buildConfigFields!!.getting(key).get().let {
                 assertEquals("String", it.type)
                 assertEquals(value.addParenthesisIfNeeded(), it.value)
-                assertEquals(null, it.comment)
+                assertNull(it.comment)
             }
         }
     }

@@ -16,39 +16,138 @@
 
 package com.google.android.libraries.mapsplatform.secrets_gradle_plugin
 
+import com.android.build.api.AndroidPluginVersion
+import com.android.build.api.dsl.CommonExtension
+import com.android.build.api.variant.AndroidComponentsExtension
 import com.android.build.api.variant.ApplicationAndroidComponentsExtension
 import com.android.build.api.variant.BuildConfigField
 import com.android.build.api.variant.LibraryAndroidComponentsExtension
 import com.android.build.api.variant.TestComponent
 import com.android.build.api.variant.Variant
 import org.gradle.api.Project
+import java.io.ByteArrayInputStream
 import java.io.FileNotFoundException
 import java.util.Properties
 
+/**
+ * Looks up the generic [AndroidComponentsExtension] registered by any Android Gradle Plugin
+ * module type (`com.android.application`, `com.android.library`, `com.android.test`, or
+ * `com.android.dynamic-feature`).
+ */
+fun Project.androidComponents(): AndroidComponentsExtension<*, *, *>? =
+    extensions.findByType(AndroidComponentsExtension::class.java)
+
+/**
+ * Retained for binary and source backward compatibility with callers inspecting application
+ * components directly.
+ */
 fun Project.androidAppComponent(): ApplicationAndroidComponentsExtension? =
     extensions.findByType(ApplicationAndroidComponentsExtension::class.java)
 
+/**
+ * Retained for binary and source backward compatibility with callers inspecting library
+ * components directly.
+ */
 fun Project.androidLibraryComponent(): LibraryAndroidComponentsExtension? =
     extensions.findByType(LibraryAndroidComponentsExtension::class.java)
 
+/**
+ * Determines whether `BuildConfig` generation is enabled for this Android module without
+ * triggering AGP's `warnAboutAccessingVariantApiValueForDisabledFeature` warning.
+ *
+ * Resolution precedence:
+ * 1. Explicit module DSL setting (`android.buildFeatures.buildConfig`).
+ * 2. Project-wide Gradle property (`android.defaults.buildfeatures.buildconfig`).
+ * 3. AGP version default (`true` on AGP < 8.0, `false` on AGP 8.0+).
+ */
+internal fun Project.isBuildConfigEnabled(
+    androidComponents: AndroidComponentsExtension<*, *, *>
+): Boolean {
+    val dslSetting = extensions.findByType(CommonExtension::class.java)
+        ?.buildFeatures
+        ?.buildConfig
+    if (dslSetting != null) {
+        return dslSetting
+    }
+    val gradleProperty = providers.gradleProperty("android.defaults.buildfeatures.buildconfig")
+        .orNull
+        ?.toBooleanStrictOrNull()
+    if (gradleProperty != null) {
+        return gradleProperty
+    }
+    return androidComponents.pluginVersion < AndroidPluginVersion(8, 0)
+}
+
+/**
+ * Loads a Java [Properties] file resolved relative to this [Project]'s directory.
+ *
+ * @throws FileNotFoundException if the file does not exist.
+ */
 fun Project.loadPropertiesFile(fileName: String): Properties {
-    // Load file
     val propertiesFile = file(fileName)
     if (!propertiesFile.exists()) {
         throw FileNotFoundException(
             "The file '${propertiesFile.absolutePath}' could not be found"
         )
     }
+    return readPropertiesFile(propertiesFile)
+}
 
-    // Load contents into properties object
+/**
+ * Loads a Java [Properties] file in a **Gradle Isolated Projects** and **Configuration Cache**
+ * compatible manner.
+ *
+ * Rather than calling `project.rootProject.file(fileName)`—which crosses mutable project boundaries
+ * and violates Gradle Isolated Projects (`-Dorg.gradle.unsafe.isolated-projects=true`)—this method
+ * resolves the path against [Project.getRootDir] first, falling back to [Project.getProjectDir] so
+ * module-local secret files are also supported.
+ *
+ * @throws FileNotFoundException if the file does not exist in either the root project directory
+ *   or the module project directory.
+ */
+internal fun Project.loadRootOrModulePropertiesFile(fileName: String): Properties {
+    val rootFile = rootDir.resolve(fileName)
+    val targetFile = when {
+        rootFile.exists() -> rootFile
+        else -> {
+            val moduleFile = projectDir.resolve(fileName)
+            if (moduleFile.exists()) {
+                moduleFile
+            } else {
+                throw FileNotFoundException(
+                    "The file '${rootFile.absolutePath}' could not be found"
+                )
+            }
+        }
+    }
+    return readPropertiesFile(targetFile)
+}
+
+private fun Project.readPropertiesFile(targetFile: java.io.File): Properties {
+    // Use ProviderFactory.fileContents when available so Gradle's Configuration Cache tracks
+    // the file content lazily and accurately.
+    val bytes = providers.fileContents(layout.file(provider { targetFile })).asBytes.orNull
     return Properties().apply {
-        propertiesFile.inputStream().use(::load)
+        if (bytes != null) {
+            ByteArrayInputStream(bytes).use(::load)
+        } else {
+            targetFile.inputStream().use(::load)
+        }
     }
 }
 
 private val javaVarRegexp = Regex(pattern = "((?![a-zA-Z_\$0-9]).)")
 
-fun Variant.inject(properties: Properties, ignore: List<String>) {
+/**
+ * Injects non-ignored entries from [properties] into this [Variant]'s `manifestPlaceholders`
+ * and (when [injectBuildConfig] is `true`) `buildConfigFields`.
+ */
+@JvmOverloads
+fun Variant.inject(
+    properties: Properties,
+    ignore: List<String>,
+    injectBuildConfig: Boolean = true
+) {
     val ignoreRegexs = ignore.map { Regex(pattern = it) }
     properties.keys.map { key ->
         key as String
@@ -57,15 +156,25 @@ fun Variant.inject(properties: Properties, ignore: List<String>) {
     }.forEach { key ->
         val value = properties.getProperty(key).removeSurrounding("\"")
         val translatedKey = key.replace(javaVarRegexp, "")
-        buildConfigFields.put(
-            translatedKey,
-            BuildConfigField("String", value.addParenthesisIfNeeded(), null)
-        )
-        manifestPlaceholders.put(translatedKey, value)
+        if (translatedKey.isNotEmpty()) {
+            if (injectBuildConfig && !translatedKey[0].isDigit()) {
+                buildConfigFields?.put(
+                    translatedKey,
+                    BuildConfigField("String", value.addParenthesisIfNeeded(), null)
+                )
+            }
+            manifestPlaceholders.put(translatedKey, value)
+        }
     }
 }
 
-/** Test components only expose [manifestPlaceholders] (no BuildConfig), so inject just those. */
+/**
+ * Injects non-ignored entries from [properties] into a [TestComponent]'s `manifestPlaceholders`.
+ *
+ * Test components (`UnitTest` and `AndroidTest`) merge the same `AndroidManifest.xml` as the main
+ * variant (which may reference `${MAPS_API_KEY}`), and AGP 9.1+ strictly validates that all
+ * placeholders in merged test manifests are resolved. Test components do not expose `buildConfigFields`.
+ */
 fun TestComponent.inject(properties: Properties, ignore: List<String>) {
     val ignoreRegexs = ignore.map { Regex(pattern = it) }
     properties.keys.map { key ->
@@ -75,17 +184,30 @@ fun TestComponent.inject(properties: Properties, ignore: List<String>) {
     }.forEach { key ->
         val value = properties.getProperty(key).removeSurrounding("\"")
         val translatedKey = key.replace(javaVarRegexp, "")
-        manifestPlaceholders.put(translatedKey, value)
+        if (translatedKey.isNotEmpty()) {
+            manifestPlaceholders.put(translatedKey, value)
+        }
     }
 }
 
+/**
+ * Formats a property string value as a valid Java `String` literal for `BuildConfig.java`.
+ *
+ * - An empty string (`""`) becomes `"\"\""` so `BuildConfig.java` compiles to `= "";` instead
+ *   of the invalid `= ;`.
+ * - A string already enclosed in double quotes is preserved as-is.
+ * - Unquoted strings have backslashes and embedded double quotes escaped before wrapping in `"..."`,
+ *   preventing Windows file paths (such as `C:\Users\...`) from causing `illegal escape character`
+ *   compiler errors in `BuildConfig.java`.
+ */
 fun String.addParenthesisIfNeeded(): String {
     if (isEmpty()) {
-        return this
+        return "\"\""
     }
     val charArray = this.toCharArray()
     if (length > 1 && charArray[0] == '"' && charArray[charArray.size - 1] == '"') {
         return this
     }
-    return "\"$this\""
+    val escaped = this.replace("\\", "\\\\").replace("\"", "\\\"")
+    return "\"$escaped\""
 }
