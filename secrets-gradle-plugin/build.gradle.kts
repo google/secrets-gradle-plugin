@@ -15,7 +15,7 @@
 plugins {
     `java-gradle-plugin`
     `maven-publish`
-    id("kotlin")
+    alias(libs.plugins.kotlin.jvm)
 }
 
 java {
@@ -24,9 +24,9 @@ java {
 }
 
 dependencies {
-    compileOnly(libs.gradle)
+    compileOnly(libs.agp.api)
     implementation(libs.kotlin.stdlib)
-    testImplementation(libs.gradle)
+    testImplementation(libs.agp.api)
     testImplementation(libs.junit)
     testImplementation(libs.mockito.kotlin)
 }
@@ -91,9 +91,7 @@ publishing {
     }
 }
 
-project(":secrets-gradle-plugin") {
-    version = PluginInfo.version
-}
+version = PluginInfo.version
 
 object PluginInfo {
     const val artifactId =

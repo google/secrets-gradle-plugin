@@ -13,10 +13,8 @@
 // limitations under the License.
 
 plugins {
-    id("com.android.application")
-    id("kotlin-android")
-
-    // 1. Include the plugin
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
     id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
 }
 

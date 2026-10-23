@@ -11,36 +11,11 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-buildscript {
 
-    repositories {
-        mavenLocal()
-        google()
-        mavenCentral()
-        maven {
-            url = uri("https://maven.pkg.github.com/google/secrets-gradle-plugin")
-            credentials {
-                username = project.findProperty("ghGprUser") as String? ?: System.getenv("ghGprUser")
-                password = project.findProperty("ghGprToken") as String? ?: System.getenv("ghGprToken")
-            }
-        }
-    }
-
-    dependencies {
-        classpath(libs.gradle.v842)
-        classpath(libs.kotlin.gradle.plugin)
-        classpath(libs.secrets.gradle.plugin)
-
-        // NOTE: Do not place your application dependencies here; they belong
-        // in the individual module build.gradle.kts files
-    }
-}
-
-allprojects {
-    repositories {
-        google()
-        mavenCentral()
-    }
+plugins {
+    alias(libs.plugins.android.application) apply false
+    alias(libs.plugins.kotlin.android) apply false
+    alias(libs.plugins.kotlin.jvm) apply false
 }
 
 tasks.register<Delete>("clean") {

@@ -14,16 +14,18 @@
 
 package com.google.android.libraries.mapsplatform.secrets_gradle_plugin
 
+import com.android.build.api.variant.BuildConfigField
 import com.android.build.api.variant.TestComponent
-import com.android.build.gradle.internal.core.InternalBaseVariant
+import com.android.build.api.variant.Variant
 import com.nhaarman.mockitokotlin2.doReturn
 import com.nhaarman.mockitokotlin2.mock
-import com.nhaarman.mockitokotlin2.verify
 import org.gradle.api.Project
 import org.gradle.api.ProjectConfigurationException
 import org.gradle.api.internal.project.ProjectInternal
 import org.gradle.testfixtures.ProjectBuilder
-import org.junit.Assert
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Ignore
 import org.junit.Rule
@@ -36,10 +38,9 @@ class SecretsPluginTest {
     @JvmField
     val tempFolder = TemporaryFolder()
 
-    lateinit var placeholders: MutableMap<String, Any>
     lateinit var root: Project
     lateinit var project: Project
-    lateinit var variant: InternalBaseVariant
+    lateinit var variant: Variant
 
     @Before
     fun setUp() {
@@ -52,12 +53,11 @@ class SecretsPluginTest {
             .withName("project")
             .withParent(root)
             .build()
-        placeholders = mutableMapOf()
-        val flavor = mock<InternalBaseVariant.MergedFlavor> {
-            on { manifestPlaceholders } doReturn placeholders
-        }
         variant = mock {
-            on { mergedFlavor } doReturn flavor
+            on { buildConfigFields } doReturn
+                    project.objects.mapProperty(String::class.java, BuildConfigField::class.java)
+            on { manifestPlaceholders } doReturn
+                    project.objects.mapProperty(String::class.java, String::class.java)
         }
         project.pluginManager.apply("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
     }
@@ -114,8 +114,8 @@ class SecretsPluginTest {
 
         testComponent.inject(properties = properties, ignore = listOf("ignoreKey"))
 
-        Assert.assertEquals("someValue", testPlaceholders.get()["MAPS_API_KEY"])
-        Assert.assertFalse(testPlaceholders.get().containsKey("ignoreKey"))
+        assertEquals("someValue", testPlaceholders.get()["MAPS_API_KEY"])
+        assertFalse(testPlaceholders.get().containsKey("ignoreKey"))
     }
 
     @Test
@@ -180,14 +180,18 @@ class SecretsPluginTest {
 
     private fun check(vararg keyValues: Pair<String, String>) {
         keyValues.forEach { (key, value) ->
-            Assert.assertEquals(value, placeholders[key])
-            verify(variant).buildConfigField("String", key, value.addParenthesisIfNeeded())
+            assertEquals(value, variant.manifestPlaceholders.getting(key).get())
+            variant.buildConfigFields.getting(key).get().let {
+                assertEquals("String", it.type)
+                assertEquals(value.addParenthesisIfNeeded(), it.value)
+                assertEquals(null, it.comment)
+            }
         }
     }
 
     private fun checkKeysNotIn(vararg keys: String) {
         keys.forEach {
-            Assert.assertFalse(placeholders.containsKey(it))
+            assertTrue(variant.manifestPlaceholders.getting(it).orNull == null)
         }
     }
 }
