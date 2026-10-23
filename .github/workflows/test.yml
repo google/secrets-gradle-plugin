@@ -23,7 +23,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  run-unit-test:
+  build:
     runs-on: ubuntu-latest
 
     steps:
@@ -37,7 +37,11 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Run tests
+    - name: Run root project build
+      run: |
+        ./gradlew build --stacktrace
+
+    - name: Run plugin build
       run: |
         echo "Running unit tests"
-        ./gradlew :secrets-gradle-plugin:build check test -x lint --stacktrace
+        ./gradlew :secrets-gradle-plugin:build --stacktrace

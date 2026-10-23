@@ -18,8 +18,8 @@ plugins:
           from: "version '.*'"
           to: "version '${nextRelease.version}'"
   - - "@semantic-release/exec"
-    - prepareCmd: "./gradlew build --warn --stacktrace"
-      publishCmd: "./gradlew publishPlugins --warn --stacktrace"
+    - prepareCmd: "./gradlew :secrets-gradle-plugin:build --warn --stacktrace"
+      publishCmd: "./gradlew :secrets-gradle-plugin:publishPlugins --warn --stacktrace"
   - - "@semantic-release/git"
     - assets:
         - "./secrets-gradle-plugin/build.gradle.kts"

@@ -15,7 +15,7 @@
 plugins {
     `java-gradle-plugin`
     `maven-publish`
-    id("kotlin")
+    alias(libs.plugins.kotlin.jvm)
 }
 
 java {
@@ -91,9 +91,7 @@ publishing {
     }
 }
 
-project(":secrets-gradle-plugin") {
-    version = PluginInfo.version
-}
+version = PluginInfo.version
 
 object PluginInfo {
     const val artifactId =
