@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# A workflow that runs tests on every new pull request
+# A workflow that runs unit tests and sample app verification on every pull request
 name: Tests
 
 on:
@@ -22,26 +22,30 @@ on:
     branches: ['*']
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
     - name: Checkout Repo
-      uses: actions/checkout@v2
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
     - name: Set up JDK 17
-      uses: actions/setup-java@v4.2.1
+      uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
       with:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Run root project build
-      run: |
-        ./gradlew build --stacktrace
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
 
-    - name: Run plugin build
+    - name: Run plugin unit tests and checks
       run: |
-        echo "Running unit tests"
-        ./gradlew :secrets-gradle-plugin:build --stacktrace
+        ./gradlew :secrets-gradle-plugin:build :secrets-gradle-plugin:check --stacktrace
+
+    - name: Build sample app and verify test manifest placeholders
+      run: |
+        ./gradlew :sample-app:assembleDebug :sample-app:testDebugUnitTest --stacktrace

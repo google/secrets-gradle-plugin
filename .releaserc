@@ -17,6 +17,14 @@ plugins:
             - "README.md"
           from: "version '.*'"
           to: "version '${nextRelease.version}'"
+        - files:
+            - "README.md"
+          from: "secretsGradlePlugin = \".*\""
+          to: "secretsGradlePlugin = \"${nextRelease.version}\""
+        - files:
+            - "README.md"
+          from: "secrets-gradle-plugin:secrets-gradle-plugin:.*\""
+          to: "secrets-gradle-plugin:secrets-gradle-plugin:${nextRelease.version}\""
   - - "@semantic-release/exec"
     - prepareCmd: "./gradlew :secrets-gradle-plugin:build --warn --stacktrace"
       publishCmd: "./gradlew :secrets-gradle-plugin:publishPlugins --warn --stacktrace"

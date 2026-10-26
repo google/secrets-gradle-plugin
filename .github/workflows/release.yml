@@ -14,21 +14,28 @@
 
 name: Release
 on:
-  push:
-    branches: [ ]
   workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
     - name: Set up JDK 17
-      uses: actions/setup-java@v4.2.1
+      uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
       with:
         java-version: '17'
         distribution: 'temurin'
+
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
 
     - name: Copy secrets to gradle.properties
       run: |
@@ -37,24 +44,24 @@ jobs:
       env:
         GRADLE_PUBLISH_KEY: ${{ secrets.GRADLE_PUB_KEY }}
         GRADLE_PUBLISH_SECRET: ${{ secrets.GRADLE_PUB_SEC }}
-    
+
     - name: Set up node
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
       with:
-        node-version: '14'
+        node-version: '24'
 
     - name: Install conventionalcommits
       run: npm i -D conventional-changelog-conventionalcommits
 
     - name: Semantic Release
-      uses: cycjimmy/semantic-release-action@v4.1.0
+      uses: cycjimmy/semantic-release-action@d9bf53a078bd2f86aaffaec796dbb3d28f1b6f34 # v8.1.3
       with:
         extra_plugins: |
-          "@semantic-release/commit-analyzer@8.0.1"
-          "@semantic-release/release-notes-generator@9.0.3"
-          "@google/semantic-release-replace-plugin@1.2.0"
-          "@semantic-release/exec@5.0.0"
-          "@semantic-release/git@9.0.1"
-          "@semantic-release/github@7.2.3"
+          "@semantic-release/commit-analyzer@13.0.1"
+          "@semantic-release/release-notes-generator@14.1.1"
+          "@google/semantic-release-replace-plugin@1.2.7"
+          "@semantic-release/exec@7.1.0"
+          "@semantic-release/git@11.0.1"
+          "@semantic-release/github@12.0.10"
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

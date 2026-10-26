@@ -5,31 +5,99 @@
 A Gradle plugin for providing your secrets securely to your Android project.
 
 This Gradle plugin reads secrets from a properties file **not checked into version control**,
-such as `local.properties`, and expose those properties as variables in the Gradle-generated `BuildConfig`
-class and in the Android manifest file.
+such as `local.properties` or `secrets.properties`, and exposes those properties as variables
+in the Gradle-generated `BuildConfig` class and in your `AndroidManifest.xml` file.
 
-**DISCLAIMER:** This plugin is primarily for hiding your keys from version control. Since your key is part of the static binary, your API keys are still recoverable by decompiling an APK. So, securing your key using other measures like adding restrictions (if possible) are recommended.
+**DISCLAIMER:** This plugin is primarily for hiding your keys from version control. Since your key is part of the static binary, your API keys are still recoverable by decompiling an APK. Securing your key using other measures—such as adding [API key restrictions](https://developers.google.com/maps/api-security-best-practices) in the Google Cloud Console—is strongly recommended.
 
 ## Requirements
-* Gradle-based Android project
-* Android Gradle plugin 7.0.2
+* Gradle-based Android project (Gradle 8.0+ recommended)
+* Android Gradle Plugin (AGP) 7.4.0 or higher (tested through AGP 9.x)
+* JDK 17 or higher
 
 ## Installation
 
-**NOTE**: Starting from v1.1.0, the plugin ID was changed to "com.google.android.libraries.mapsplatform.secrets-gradle-plugin" and the plugin is now being distributed via Google Maven (gMaven).  You can still download previous versions of the plugin from Gradle's plugin portal, but new versions will now only be distributed through gMaven.
+**NOTE**: Starting from v1.1.0, the plugin ID is `"com.google.android.libraries.mapsplatform.secrets-gradle-plugin"` and artifacts are distributed via Google Maven (`gMaven`). Ensure `google()` is included in your `settings.gradle` / `settings.gradle.kts` `pluginManagement.repositories` block:
 
-1. In your project's root `build.gradle` file:
-
-Groovy:
-```groovy
-buildscript {
-    dependencies {
-        classpath "com.google.android.libraries.mapsplatform.secrets-gradle-plugin:secrets-gradle-plugin:2.0.1"
+```kotlin
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
     }
 }
 ```
 
+### Option A: Using Version Catalogs (`gradle/libs.versions.toml`) (Recommended)
+
+1. In your `gradle/libs.versions.toml` file:
+
+```toml
+[versions]
+secretsGradlePlugin = "2.0.1"
+
+[plugins]
+secrets-gradle-plugin = { id = "com.google.android.libraries.mapsplatform.secrets-gradle-plugin", version.ref = "secretsGradlePlugin" }
+```
+
+2. In your root-level `build.gradle.kts` (or `build.gradle`) file:
+
+```kotlin
+plugins {
+    alias(libs.plugins.secrets.gradle.plugin) apply false
+}
+```
+
+3. In your module-level `build.gradle.kts` (or `build.gradle`) file:
+
+```kotlin
+plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.secrets.gradle.plugin)
+}
+```
+
+### Option B: Using the `plugins` DSL
+
+1. In your root-level `build.gradle` / `build.gradle.kts` file:
+
+Groovy:
+```groovy
+plugins {
+    id 'com.google.android.libraries.mapsplatform.secrets-gradle-plugin' version '2.0.1' apply false
+}
+```
+
 Kotlin:
+```kotlin
+plugins {
+    id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin") version "2.0.1" apply false
+}
+```
+
+2. In your module-level `build.gradle` / `build.gradle.kts` file:
+
+Groovy:
+```groovy
+plugins {
+    id 'com.android.application'
+    id 'com.google.android.libraries.mapsplatform.secrets-gradle-plugin'
+}
+```
+
+Kotlin:
+```kotlin
+plugins {
+    id("com.android.application")
+    id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
+}
+```
+
+### Option C: Using Legacy `buildscript` Classpath
+
+In your root-level `build.gradle` / `build.gradle.kts` file:
+
 ```kotlin
 buildscript {
     dependencies {
@@ -38,92 +106,67 @@ buildscript {
 }
 ```
 
-2. In your app-level `build.gradle` file:
-
-Groovy:
-```groovy
-plugins {
-    id 'com.google.android.libraries.mapsplatform.secrets-gradle-plugin'
-}
-```
-
-Kotlin:
-```groovy
-plugins {
-    id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
-}
-```
-
-This plugin also supports library module type (`com.android.library`). Just install the plugin in your library-level `build.gradle` file and keys will be visible inside that module as well.
-
-### Snapshot Releases
-
-Snapshot releases, which are distributed via [GitHub Packages](https://github.com/orgs/google/packages?repo_name=secrets-gradle-plugin), are also available for latest fixes. To use a snapshot release, add the following repository to your project-level `build.gradle` file:
-
-Groovy:
-```groovy
-buildscript {
-    repositories {
-        maven {
-            url = uri("https://maven.pkg.github.com/google/secrets-gradle-plugin")
-            credentials {
-                username = project.findProperty("GITHUB_USER") ?: System.getenv("GITHUB_USER")
-                password = project.findProperty("GITHUB_TOKEN") ?: System.getenv("GITHUB_TOKEN")
-            }
-        }
-    }
-    dependencies {
-        classpath "com.google.android.libraries.mapsplatform.secrets-gradle-plugin:secrets-gradle-plugin:<version>-SNAPSHOT"
-    }
-}
-```
-
-Also, see [Authenticating to GitHub Packages](https://docs.github.com/en/packages/learn-github-packages/introduction-to-github-packages#authenticating-to-github-packages).
-
+Supported Android module types include:
+* `com.android.application`
+* `com.android.library`
+* `com.android.test` (including Baseline Profile generator modules)
+* `com.android.dynamic-feature`
 
 ## Example Usage
 
-Example contents of `local.properties` under your root project:
-```
-apiKey=YOUR_API_KEY
+Example contents of `local.properties` (or `secrets.properties`) under your root project (or module directory):
+```properties
+MAPS_API_KEY=YOUR_API_KEY
 ```
 
-After applying the plugin and building your project, the API key then becomes accessible in two ways.
+After applying the plugin and building your project, the secret becomes accessible in two ways:
 
-  1. As a `BuildConfig` value:
-  ```kotlin
-  val apiKey = BuildConfig.apiKey
-  ```
-  2. As a variable accessible in your `AndroidManifest.xml` file:
-  ```xml
-  <meta-data android:value="${apiKey}" />
-  ```
+1. **In your `AndroidManifest.xml` file** (injected into the main variant as well as unit-test and instrumented-test manifests):
+```xml
+<meta-data
+    android:name="com.google.android.geo.API_KEY"
+    android:value="${MAPS_API_KEY}" />
+```
+
+2. **As a `BuildConfig` field**:
+```kotlin
+val apiKey = BuildConfig.MAPS_API_KEY
+```
+
+> **Important (AGP 8.0+):** Starting in Android Gradle Plugin 8.0, `BuildConfig` generation is disabled by default. If you want secrets injected into `BuildConfig` (in addition to `AndroidManifest.xml`), enable `buildConfig` in your module's `build.gradle.kts` / `build.gradle`:
+> ```kotlin
+> android {
+>     buildFeatures {
+>         buildConfig = true
+>     }
+> }
+> ```
+> If `buildConfig` is disabled, the plugin automatically skips `BuildConfig` field injection and only injects `AndroidManifest.xml` placeholders without emitting AGP warnings.
 
 ## CI/CD Systems
 
-For CI/CD systems, consider creating and checking in version control a default properties file with all
-the same keys required by your app but with _safe_ default values. To do this, create a properties file
-and set the `defaultPropertiesFileName` value to that file name. For example:
+For CI/CD systems, consider checking in a default properties file containing all required keys with safe stub values, and setting `defaultPropertiesFileName`:
 
-```groovy
+```kotlin
 secrets {
-    defaultPropertiesFileName = 'local.defaults.properties'
+    propertiesFileName = "secrets.properties"
+    defaultPropertiesFileName = "secrets.defaults.properties"
 }
 ```
 
 ## Configuration Options
 
-The plugin can optionally be configured:
+The plugin can optionally be configured inside your module's `build.gradle` / `build.gradle.kts`:
 
-```groovy
+```kotlin
 secrets {
     // Change the properties file from the default "local.properties" in your root project
-    // to another properties file in your root project.
-    propertiesFileName 'secrets.properties'
+    // (or module directory) to another properties file.
+    propertiesFileName = "secrets.properties"
 
-    // A properties file containing default secret values. This file can be checked in version
-    // control.
-    defaultPropertiesFileName = 'secrets.defaults.properties'
+    // A properties file containing default secret values. This file can be checked into
+    // version control for CI/CD or fresh checkouts.
+    defaultPropertiesFileName = "secrets.defaults.properties"
 
     // Configure which keys should be ignored by the plugin by providing regular expressions.
     // "sdk.dir" is ignored by default.
@@ -132,18 +175,21 @@ secrets {
 }
 ```
 
-### Build-Variant Specific Properties
+### Build-Type, Flavor, and Variant-Specific Properties
 
-To set build-variant specific properties (build type or flavor), create a properties file at the
-root directory of the project with the same name as the variant. For example, to set keys specific
-for the `release` build type, create a new file called `release.properties` containing
-release-specific keys.
+You can override properties per build type, product flavor, or combined variant by placing matching `.properties` files in your root project (or module) directory. Files are evaluated in the following order (later files override earlier ones):
+
+1. `defaultPropertiesFileName` (e.g., `secrets.defaults.properties`)
+2. `propertiesFileName` (e.g., `local.properties` or `secrets.properties`)
+3. `<buildType>.properties` (e.g., `debug.properties`, `release.properties`)
+4. `<flavorName>.properties` (e.g., `free.properties`, `paid.properties`)
+5. `<variantName>.properties` (e.g., `freeDebug.properties`, `paidRelease.properties`)
 
 ## Contributing
 
 Contributions to this library are always welcome and highly encouraged!
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for more 
+See [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for more
 information on how to get started.
 
 ## License
