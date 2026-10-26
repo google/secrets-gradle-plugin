@@ -36,14 +36,8 @@ class SecretsPluginFunctionalTest {
     @JvmField
     val testProjectDir = TemporaryFolder()
 
-    private lateinit var testKitDir: File
-
     @Before
     fun setUp() {
-        testKitDir = System.getProperty("testkit.dir")
-            ?.let(::File)
-            ?: testProjectDir.newFolder("testkit")
-
         writeLocalPropertiesWithSdkDir(testProjectDir.root)
         testProjectDir.newFile("gradle.properties").writeText(
             """
@@ -510,6 +504,7 @@ class SecretsPluginFunctionalTest {
         )
 
         val result = createRunner(
+            "-Dorg.gradle.unsafe.isolated-projects=true",
             ":lib:generateDebugBuildConfig",
             ":lib:processDebugManifest",
             ":benchmark:processDebugManifest"
@@ -596,16 +591,19 @@ class SecretsPluginFunctionalTest {
     private fun createRunner(vararg args: String): GradleRunner {
         return GradleRunner.create()
             .withProjectDir(testProjectDir.root)
-            .withTestKitDir(testKitDir)
             .withPluginClasspath()
-            .withArguments(*args, "--offline", "--stacktrace")
+            .withArguments(*args, "--stacktrace")
     }
 
     private fun writeLocalPropertiesWithSdkDir(dir: File) {
         val sdkDir = System.getenv("ANDROID_HOME")
             ?: System.getenv("ANDROID_SDK_ROOT")
-            ?: "/usr/local/google/home/dkhawk/Android/Sdk"
-        dir.resolve("local.properties").writeText("sdk.dir=${sdkDir.replace("\\", "\\\\")}\n")
+        val content = if (!sdkDir.isNullOrBlank()) {
+            "sdk.dir=${sdkDir.replace("\\", "\\\\")}\n"
+        } else {
+            ""
+        }
+        dir.resolve("local.properties").writeText(content)
     }
 
     private fun writeMainManifest(moduleDir: File, content: String) {

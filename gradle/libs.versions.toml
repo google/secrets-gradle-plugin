@@ -12,8 +12,7 @@ mockitoKotlin = "6.4.0"
 agp-api = { module = "com.android.tools.build:gradle-api", version.ref = "agpApi" }
 android-gradle-plugin = { module = "com.android.tools.build:gradle", version.ref = "agp" }
 junit = { module = "junit:junit", version.ref = "junit" }
-kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
-kotlin-stdlib = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib-jdk8", version.ref = "kotlin" }
+kotlin-stdlib = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib", version.ref = "kotlin" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 byte-buddy = { module = "net.bytebuddy:byte-buddy", version.ref = "byteBuddy" }

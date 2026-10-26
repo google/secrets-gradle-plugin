@@ -66,19 +66,25 @@ class SecretsPlugin : Plugin<Project> {
         extension: SecretsPluginExtension,
         component: AndroidComponentsExtension<*, *, *>
     ) {
-        component.onVariants { variant ->
-            val defaultProperties = extension.defaultPropertiesFileName?.let {
+        val defaultProperties by lazy {
+            extension.defaultPropertiesFileName?.let {
                 project.loadRootOrModulePropertiesFile(it)
             }
-
-            val properties: Properties? = try {
+        }
+        val properties: Properties? by lazy {
+            try {
                 project.loadRootOrModulePropertiesFile(
                     extension.propertiesFileName
                 )
             } catch (e: FileNotFoundException) {
                 defaultProperties ?: throw e
             }
-            val injectBuildConfig = project.isBuildConfigEnabled(component)
+        }
+        val injectBuildConfig by lazy {
+            project.isBuildConfigEnabled(component)
+        }
+
+        component.onVariants { variant ->
             generateConfigKey(
                 project = project,
                 extension = extension,

@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import java.util.Properties
 import org.gradle.api.attributes.plugin.GradlePluginApiVersion
 import org.gradle.plugin.devel.tasks.PluginUnderTestMetadata
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
@@ -44,31 +43,6 @@ val agpTestRuntime: Configuration = configurations.create("agpTestRuntime")
 
 tasks.named<PluginUnderTestMetadata>("pluginUnderTestMetadata") {
     pluginClasspath.from(agpTestRuntime)
-}
-
-tasks.withType<Test>().configureEach {
-    // Isolate user.home and Android home inside buildDirectory so Gradle ProjectBuilder and
-    // TestKit functional tests run cleanly in restricted/sandboxed environments.
-    val testHome = layout.buildDirectory.dir("test-home").get().asFile
-    val androidUserHome = layout.buildDirectory.dir("android-home").get().asFile
-    val testKitDir = layout.buildDirectory.dir("testkit").get().asFile
-    doFirst {
-        testHome.mkdirs()
-        androidUserHome.mkdirs()
-        testKitDir.mkdirs()
-    }
-    systemProperty("user.home", testHome.absolutePath)
-    systemProperty("testkit.dir", testKitDir.absolutePath)
-    environment("ANDROID_USER_HOME", androidUserHome.absolutePath)
-    val androidSdkDir = System.getenv("ANDROID_HOME")
-        ?: System.getenv("ANDROID_SDK_ROOT")
-        ?: rootDir.parentFile.resolve("local.properties").takeIf { it.isFile }?.let { file ->
-            Properties().apply { file.inputStream().use(::load) }.getProperty("sdk.dir")
-        }
-    if (androidSdkDir != null) {
-        environment("ANDROID_HOME", androidSdkDir)
-        environment("ANDROID_SDK_ROOT", androidSdkDir)
-    }
 }
 
 // Declare compatibility with Gradle 8.0+ in published Gradle Module Metadata so that

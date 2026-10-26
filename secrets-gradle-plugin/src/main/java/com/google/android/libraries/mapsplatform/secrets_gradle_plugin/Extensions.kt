@@ -107,36 +107,62 @@ fun Project.loadPropertiesFile(fileName: String): Properties {
  */
 internal fun Project.loadRootOrModulePropertiesFile(fileName: String): Properties {
     val rootFile = rootDir.resolve(fileName)
-    val targetFile = when {
-        rootFile.exists() -> rootFile
-        else -> {
-            val moduleFile = projectDir.resolve(fileName)
-            if (moduleFile.exists()) {
-                moduleFile
-            } else {
-                throw FileNotFoundException(
-                    "The file '${rootFile.absolutePath}' could not be found"
-                )
-            }
+    readOptionalPropertiesFile(rootFile)?.let { return it }
+
+    val moduleFile = projectDir.resolve(fileName)
+    if (moduleFile != rootFile) {
+        readOptionalPropertiesFile(moduleFile)?.let { return it }
+    }
+
+    throw FileNotFoundException(
+        "The file '${rootFile.absolutePath}' could not be found"
+    )
+}
+
+private fun Project.readOptionalPropertiesFile(targetFile: java.io.File): Properties? {
+    // Query ProviderFactory.fileContents first so Gradle's Configuration Cache tracks both
+    // file content when present and file absence when missing.
+    val bytes = providers.fileContents(layout.file(provider { targetFile })).asBytes.orNull
+    if (bytes != null) {
+        return Properties().apply {
+            ByteArrayInputStream(bytes).use(::load)
         }
     }
-    return readPropertiesFile(targetFile)
+    if (!targetFile.exists()) {
+        return null
+    }
+    return Properties().apply {
+        targetFile.inputStream().use(::load)
+    }
 }
 
 private fun Project.readPropertiesFile(targetFile: java.io.File): Properties {
-    // Use ProviderFactory.fileContents when available so Gradle's Configuration Cache tracks
-    // the file content lazily and accurately.
-    val bytes = providers.fileContents(layout.file(provider { targetFile })).asBytes.orNull
-    return Properties().apply {
-        if (bytes != null) {
-            ByteArrayInputStream(bytes).use(::load)
-        } else {
-            targetFile.inputStream().use(::load)
-        }
-    }
+    return readOptionalPropertiesFile(targetFile)
+        ?: throw FileNotFoundException(
+            "The file '${targetFile.absolutePath}' could not be found"
+        )
 }
 
 private val javaVarRegexp = Regex(pattern = "((?![a-zA-Z_\$0-9]).)")
+
+private inline fun forEachTranslatedProperty(
+    properties: Properties,
+    ignore: List<String>,
+    action: (translatedKey: String, value: String) -> Unit
+) {
+    val ignoreRegexs = ignore.map { Regex(pattern = it) }
+    properties.keys.map { key ->
+        key as String
+    }.filter { key ->
+        key.isNotEmpty() && !ignoreRegexs.any { it.containsMatchIn(key) }
+    }.forEach { key ->
+        val value = properties.getProperty(key).removeSurrounding("\"")
+        val translatedKey = key.replace(javaVarRegexp, "")
+        if (translatedKey.isNotEmpty()) {
+            action(translatedKey, value)
+        }
+    }
+}
 
 /**
  * Injects non-ignored entries from [properties] into this [Variant]'s `manifestPlaceholders`
@@ -148,23 +174,14 @@ fun Variant.inject(
     ignore: List<String>,
     injectBuildConfig: Boolean = true
 ) {
-    val ignoreRegexs = ignore.map { Regex(pattern = it) }
-    properties.keys.map { key ->
-        key as String
-    }.filter { key ->
-        key.isNotEmpty() && !ignoreRegexs.any { it.containsMatchIn(key) }
-    }.forEach { key ->
-        val value = properties.getProperty(key).removeSurrounding("\"")
-        val translatedKey = key.replace(javaVarRegexp, "")
-        if (translatedKey.isNotEmpty()) {
-            if (injectBuildConfig && !translatedKey[0].isDigit()) {
-                buildConfigFields?.put(
-                    translatedKey,
-                    BuildConfigField("String", value.addParenthesisIfNeeded(), null)
-                )
-            }
-            manifestPlaceholders.put(translatedKey, value)
+    forEachTranslatedProperty(properties, ignore) { translatedKey, value ->
+        if (injectBuildConfig && !translatedKey[0].isDigit()) {
+            buildConfigFields?.put(
+                translatedKey,
+                BuildConfigField("String", value.addParenthesisIfNeeded(), null)
+            )
         }
+        manifestPlaceholders.put(translatedKey, value)
     }
 }
 
@@ -176,17 +193,8 @@ fun Variant.inject(
  * placeholders in merged test manifests are resolved. Test components do not expose `buildConfigFields`.
  */
 fun TestComponent.inject(properties: Properties, ignore: List<String>) {
-    val ignoreRegexs = ignore.map { Regex(pattern = it) }
-    properties.keys.map { key ->
-        key as String
-    }.filter { key ->
-        key.isNotEmpty() && !ignoreRegexs.any { it.containsMatchIn(key) }
-    }.forEach { key ->
-        val value = properties.getProperty(key).removeSurrounding("\"")
-        val translatedKey = key.replace(javaVarRegexp, "")
-        if (translatedKey.isNotEmpty()) {
-            manifestPlaceholders.put(translatedKey, value)
-        }
+    forEachTranslatedProperty(properties, ignore) { translatedKey, value ->
+        manifestPlaceholders.put(translatedKey, value)
     }
 }
 
@@ -196,9 +204,9 @@ fun TestComponent.inject(properties: Properties, ignore: List<String>) {
  * - An empty string (`""`) becomes `"\"\""` so `BuildConfig.java` compiles to `= "";` instead
  *   of the invalid `= ;`.
  * - A string already enclosed in double quotes is preserved as-is.
- * - Unquoted strings have backslashes and embedded double quotes escaped before wrapping in `"..."`,
- *   preventing Windows file paths (such as `C:\Users\...`) from causing `illegal escape character`
- *   compiler errors in `BuildConfig.java`.
+ * - Unquoted strings have backslashes, double quotes, and control characters (`\n`, `\r`, `\t`)
+ *   escaped before wrapping in `"..."`, preventing Windows file paths (such as `C:\Users\...`)
+ *   or multi-line values from causing compiler errors in `BuildConfig.java`.
  */
 fun String.addParenthesisIfNeeded(): String {
     if (isEmpty()) {
@@ -208,6 +216,11 @@ fun String.addParenthesisIfNeeded(): String {
     if (length > 1 && charArray[0] == '"' && charArray[charArray.size - 1] == '"') {
         return this
     }
-    val escaped = this.replace("\\", "\\\\").replace("\"", "\\\"")
+    val escaped = this
+        .replace("\\", "\\\\")
+        .replace("\"", "\\\"")
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t")
     return "\"$escaped\""
 }
