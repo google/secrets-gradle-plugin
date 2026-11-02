@@ -11,8 +11,8 @@ in the Gradle-generated `BuildConfig` class and in your `AndroidManifest.xml` fi
 **DISCLAIMER:** This plugin is primarily for hiding your keys from version control. Since your key is part of the static binary, your API keys are still recoverable by decompiling an APK. Securing your key using other measures—such as adding [API key restrictions](https://developers.google.com/maps/api-security-best-practices) in the Google Cloud Console—is strongly recommended.
 
 ## Requirements
-* Gradle-based Android project (Gradle 8.0+ recommended)
-* Android Gradle Plugin (AGP) 7.4.0 or higher (tested through AGP 9.x)
+* Gradle 8.0 or higher (tested through Gradle 9.x)
+* Android Gradle Plugin (AGP) 8.0.0 or higher (tested through AGP 9.x)
 * JDK 17 or higher
 
 ## Installation
@@ -35,7 +35,7 @@ pluginManagement {
 
 ```toml
 [versions]
-secretsGradlePlugin = "2.0.1"
+secretsGradlePlugin = "2.0.2" # {x-release-please-version}
 
 [plugins]
 secrets-gradle-plugin = { id = "com.google.android.libraries.mapsplatform.secrets-gradle-plugin", version.ref = "secretsGradlePlugin" }
@@ -65,14 +65,14 @@ plugins {
 Groovy:
 ```groovy
 plugins {
-    id 'com.google.android.libraries.mapsplatform.secrets-gradle-plugin' version '2.0.1' apply false
+    id 'com.google.android.libraries.mapsplatform.secrets-gradle-plugin' version '2.0.2' apply false // {x-release-please-version}
 }
 ```
 
 Kotlin:
 ```kotlin
 plugins {
-    id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin") version "2.0.1" apply false
+    id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin") version "2.0.2" apply false // {x-release-please-version}
 }
 ```
 
@@ -101,7 +101,7 @@ In your root-level `build.gradle` / `build.gradle.kts` file:
 ```kotlin
 buildscript {
     dependencies {
-        classpath("com.google.android.libraries.mapsplatform.secrets-gradle-plugin:secrets-gradle-plugin:2.0.1")
+        classpath("com.google.android.libraries.mapsplatform.secrets-gradle-plugin:secrets-gradle-plugin:2.0.2") // {x-release-please-version}
     }
 }
 ```

@@ -24,6 +24,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.File
+import java.util.Properties
 
 /**
  * End-to-end Gradle TestKit functional tests that execute real Android Gradle Plugin (AGP) tasks
@@ -62,6 +63,8 @@ class SecretsPluginFunctionalTest {
             emptyUnquoted=
             emptyQuoted=""
             windowsPath=C\:\\Users\\dev\\Android\\Sdk
+            quotedWindowsPath="C\:\\Users\\dev\\Android\\Sdk"
+            jsonSecret={"env":"prod","version":2}
             keyToIgnore=SHOULD_BE_IGNORED
             ignorePrefixKey=SHOULD_ALSO_BE_IGNORED
             """.trimIndent()
@@ -126,6 +129,19 @@ class SecretsPluginFunctionalTest {
             </manifest>
             """.trimIndent()
         )
+        val androidTestManifest = testProjectDir.root.resolve("src/androidTest/AndroidManifest.xml")
+        androidTestManifest.parentFile.mkdirs()
+        androidTestManifest.writeText(
+            """
+            <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+                <application>
+                    <meta-data
+                        android:name="com.google.android.geo.ANDROID_TEST_API_KEY"
+                        android:value="$dollar{gmpApiKey}" />
+                </application>
+            </manifest>
+            """.trimIndent()
+        )
 
         val result = createRunner(
             "generateDebugBuildConfig",
@@ -150,6 +166,8 @@ class SecretsPluginFunctionalTest {
         assertTrue(buildConfigText.contains("""public static final String emptyUnquoted = "";"""))
         assertTrue(buildConfigText.contains("""public static final String emptyQuoted = "";"""))
         assertTrue(buildConfigText.contains("""public static final String windowsPath = "C:\\Users\\dev\\Android\\Sdk";"""))
+        assertTrue(buildConfigText.contains("""public static final String quotedWindowsPath = "C:\\Users\\dev\\Android\\Sdk";"""))
+        assertTrue(buildConfigText.contains("""public static final String jsonSecret = "{\"env\":\"prod\",\"version\":2}";"""))
         assertFalse(buildConfigText.contains("keyToIgnore"))
         assertFalse(buildConfigText.contains("ignorePrefixKey"))
 
@@ -157,10 +175,14 @@ class SecretsPluginFunctionalTest {
         assertTrue(mainManifestText.contains("""android:value="LIVE_MAPS_API_KEY""""))
         assertTrue(mainManifestText.contains("""android:value="DEFAULT_ONLY_VALUE""""))
 
-        // Verify unit test manifest also had ${gmpApiKey} and ${defaultOnlyKey} resolved (#41, #89, #96, #104, PR #107).
+        // Verify both unitTest and androidTest manifests had ${gmpApiKey} resolved (#41, PR #107).
         val unitTestManifestText = findMergedManifest("processDebugUnitTestManifest").readText()
         assertTrue(unitTestManifestText.contains("""android:value="LIVE_MAPS_API_KEY""""))
         assertTrue(unitTestManifestText.contains("""android:value="DEFAULT_ONLY_VALUE""""))
+
+        val androidTestManifestText = findMergedManifest("processDebugAndroidTestManifest").readText()
+        assertTrue(androidTestManifestText.contains("""android:name="com.google.android.geo.ANDROID_TEST_API_KEY""""))
+        assertTrue(androidTestManifestText.contains("""android:value="LIVE_MAPS_API_KEY""""))
     }
 
     @Test
@@ -598,6 +620,12 @@ class SecretsPluginFunctionalTest {
     private fun writeLocalPropertiesWithSdkDir(dir: File) {
         val sdkDir = System.getenv("ANDROID_HOME")
             ?: System.getenv("ANDROID_SDK_ROOT")
+            ?: listOf(File("../local.properties"), File("local.properties"))
+                .firstOrNull { it.isFile }
+                ?.let { file ->
+                    Properties().apply { file.inputStream().use(::load) }
+                        .getProperty("sdk.dir")
+                }
         val content = if (!sdkDir.isNullOrBlank()) {
             "sdk.dir=${sdkDir.replace("\\", "\\\\")}\n"
         } else {

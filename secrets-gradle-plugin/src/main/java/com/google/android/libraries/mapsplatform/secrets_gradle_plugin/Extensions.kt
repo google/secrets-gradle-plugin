@@ -26,6 +26,7 @@ import com.android.build.api.variant.TestComponent
 import com.android.build.api.variant.Variant
 import org.gradle.api.Project
 import java.io.ByteArrayInputStream
+import java.io.File
 import java.io.FileNotFoundException
 import java.util.Properties
 
@@ -57,7 +58,8 @@ fun Project.androidLibraryComponent(): LibraryAndroidComponentsExtension? =
  *
  * Resolution precedence:
  * 1. Explicit module DSL setting (`android.buildFeatures.buildConfig`).
- * 2. Project-wide Gradle property (`android.defaults.buildfeatures.buildconfig`).
+ * 2. Project-wide Gradle property (`android.defaults.buildfeatures.buildconfig`) on AGP < 9.0
+ *    (AGP 9.0+ removed the global default flag).
  * 3. AGP version default (`true` on AGP < 8.0, `false` on AGP 8.0+).
  */
 internal fun Project.isBuildConfigEnabled(
@@ -69,11 +71,15 @@ internal fun Project.isBuildConfigEnabled(
     if (dslSetting != null) {
         return dslSetting
     }
-    val gradleProperty = providers.gradleProperty("android.defaults.buildfeatures.buildconfig")
-        .orNull
-        ?.toBooleanStrictOrNull()
-    if (gradleProperty != null) {
-        return gradleProperty
+    if (androidComponents.pluginVersion < AndroidPluginVersion(9, 0)) {
+        val gradleProperty = providers.gradleProperty("android.defaults.buildfeatures.buildconfig")
+            .orNull
+            ?.trim()
+            ?.lowercase()
+            ?.toBooleanStrictOrNull()
+        if (gradleProperty != null) {
+            return gradleProperty
+        }
     }
     return androidComponents.pluginVersion < AndroidPluginVersion(8, 0)
 }
@@ -85,11 +91,6 @@ internal fun Project.isBuildConfigEnabled(
  */
 fun Project.loadPropertiesFile(fileName: String): Properties {
     val propertiesFile = file(fileName)
-    if (!propertiesFile.exists()) {
-        throw FileNotFoundException(
-            "The file '${propertiesFile.absolutePath}' could not be found"
-        )
-    }
     return readPropertiesFile(propertiesFile)
 }
 
@@ -99,44 +100,48 @@ fun Project.loadPropertiesFile(fileName: String): Properties {
  *
  * Rather than calling `project.rootProject.file(fileName)`—which crosses mutable project boundaries
  * and violates Gradle Isolated Projects (`-Dorg.gradle.unsafe.isolated-projects=true`)—this method
- * resolves the path against [Project.getRootDir] first, falling back to [Project.getProjectDir] so
- * module-local secret files are also supported.
+ * resolves the path against [Project.getRootDir] and [Project.getProjectDir]. If the file exists in
+ * both the root project directory and the module directory (for example, when root `local.properties`
+ * holds `sdk.dir` and module `local.properties` holds module-specific secrets), module-level entries
+ * are merged on top of root-level entries.
  *
  * @throws FileNotFoundException if the file does not exist in either the root project directory
  *   or the module project directory.
  */
 internal fun Project.loadRootOrModulePropertiesFile(fileName: String): Properties {
     val rootFile = rootDir.resolve(fileName)
-    readOptionalPropertiesFile(rootFile)?.let { return it }
+    val rootProperties = readOptionalPropertiesFile(rootFile)
 
     val moduleFile = projectDir.resolve(fileName)
-    if (moduleFile != rootFile) {
-        readOptionalPropertiesFile(moduleFile)?.let { return it }
+    val moduleProperties = if (moduleFile != rootFile) {
+        readOptionalPropertiesFile(moduleFile)
+    } else {
+        null
     }
 
-    throw FileNotFoundException(
-        "The file '${rootFile.absolutePath}' could not be found"
-    )
+    if (rootProperties == null && moduleProperties == null) {
+        throw FileNotFoundException(
+            "The file '${rootFile.absolutePath}' could not be found"
+        )
+    }
+
+    return Properties().apply {
+        rootProperties?.let(::putAll)
+        moduleProperties?.let(::putAll)
+    }
 }
 
-private fun Project.readOptionalPropertiesFile(targetFile: java.io.File): Properties? {
-    // Query ProviderFactory.fileContents first so Gradle's Configuration Cache tracks both
+private fun Project.readOptionalPropertiesFile(targetFile: File): Properties? {
+    // Query ProviderFactory.fileContents so Gradle's Configuration Cache tracks both
     // file content when present and file absence when missing.
     val bytes = providers.fileContents(layout.file(provider { targetFile })).asBytes.orNull
-    if (bytes != null) {
-        return Properties().apply {
-            ByteArrayInputStream(bytes).use(::load)
-        }
-    }
-    if (!targetFile.exists()) {
-        return null
-    }
+        ?: return null
     return Properties().apply {
-        targetFile.inputStream().use(::load)
+        ByteArrayInputStream(bytes).use(::load)
     }
 }
 
-private fun Project.readPropertiesFile(targetFile: java.io.File): Properties {
+private fun Project.readPropertiesFile(targetFile: File): Properties {
     return readOptionalPropertiesFile(targetFile)
         ?: throw FileNotFoundException(
             "The file '${targetFile.absolutePath}' could not be found"
@@ -153,7 +158,7 @@ private inline fun forEachTranslatedProperty(
     val ignoreRegexs = ignore.map { Regex(pattern = it) }
     properties.keys.map { key ->
         key as String
-    }.filter { key ->
+    }.sorted().filter { key ->
         key.isNotEmpty() && !ignoreRegexs.any { it.containsMatchIn(key) }
     }.forEach { key ->
         val value = properties.getProperty(key).removeSurrounding("\"")
@@ -201,22 +206,18 @@ fun TestComponent.inject(properties: Properties, ignore: List<String>) {
 /**
  * Formats a property string value as a valid Java `String` literal for `BuildConfig.java`.
  *
- * - An empty string (`""`) becomes `"\"\""` so `BuildConfig.java` compiles to `= "";` instead
- *   of the invalid `= ;`.
- * - A string already enclosed in double quotes is preserved as-is.
- * - Unquoted strings have backslashes, double quotes, and control characters (`\n`, `\r`, `\t`)
- *   escaped before wrapping in `"..."`, preventing Windows file paths (such as `C:\Users\...`)
- *   or multi-line values from causing compiler errors in `BuildConfig.java`.
+ * - An empty string (`""`) or empty quoted string (`"\"\""`) becomes `"\"\""` so `BuildConfig.java`
+ *   compiles to `= "";` instead of the invalid `= ;`.
+ * - Outer surrounding quotes (`"..."`) are stripped before escaping so that both quoted and unquoted
+ *   inputs containing backslashes, internal double quotes, or control characters (`\n`, `\r`, `\t`)
+ *   are consistently escaped into valid Java string literals.
  */
 fun String.addParenthesisIfNeeded(): String {
-    if (isEmpty()) {
+    val raw = removeSurrounding("\"")
+    if (raw.isEmpty()) {
         return "\"\""
     }
-    val charArray = this.toCharArray()
-    if (length > 1 && charArray[0] == '"' && charArray[charArray.size - 1] == '"') {
-        return this
-    }
-    val escaped = this
+    val escaped = raw
         .replace("\\", "\\\\")
         .replace("\"", "\\\"")
         .replace("\n", "\\n")

@@ -131,5 +131,7 @@ object PluginInfo {
         "com.google.android.libraries.mapsplatform.secrets_gradle_plugin.SecretsPlugin"
     const val name = "secretsGradlePlugin"
     const val url = "https://github.com/google/secrets-gradle-plugin"
+    // {x-release-please-start-version}
     const val version = "2.0.2"
+    // {x-release-please-end}
 }

@@ -117,27 +117,29 @@ class SecretsPlugin : Plugin<Project> {
         // 3. Inject build-type specific properties (e.g., debug.properties, release.properties)
         val buildType = variant.buildType
         if (!buildType.isNullOrEmpty()) {
-            val buildTypeFileName = "$buildType.properties"
-            val buildTypeProperties = try {
-                project.loadRootOrModulePropertiesFile(buildTypeFileName)
-            } catch (e: FileNotFoundException) {
-                null
-            }
-            buildTypeProperties?.let {
+            project.loadOptionalVariantProperties("$buildType.properties")?.let {
                 variant.injectWithTestComponents(it, extension.ignoreList, injectBuildConfig)
             }
         }
 
-        // 4. Inject product-flavor specific properties (e.g., free.properties, paid.properties)
-        val flavorName = variant.flavorName
-        if (!flavorName.isNullOrEmpty()) {
-            val flavorFileName = "$flavorName.properties"
-            val flavorProperties = try {
-                project.loadRootOrModulePropertiesFile(flavorFileName)
-            } catch (e: FileNotFoundException) {
-                null
+        // 4. Inject product-flavor specific properties (both per-dimension flavors and combined
+        // multi-dimension flavorName, e.g., free.properties, staging.properties, freeStaging.properties)
+        val injectedFlavorFiles = mutableSetOf<String>()
+        val productFlavors = try {
+            variant.productFlavors.orEmpty()
+        } catch (_: LinkageError) {
+            emptyList()
+        }
+        productFlavors.forEach { (_, dimensionFlavor) ->
+            if (dimensionFlavor.isNotEmpty() && injectedFlavorFiles.add(dimensionFlavor)) {
+                project.loadOptionalVariantProperties("$dimensionFlavor.properties")?.let {
+                    variant.injectWithTestComponents(it, extension.ignoreList, injectBuildConfig)
+                }
             }
-            flavorProperties?.let {
+        }
+        val flavorName = variant.flavorName
+        if (!flavorName.isNullOrEmpty() && injectedFlavorFiles.add(flavorName)) {
+            project.loadOptionalVariantProperties("$flavorName.properties")?.let {
                 variant.injectWithTestComponents(it, extension.ignoreList, injectBuildConfig)
             }
         }
@@ -146,15 +148,17 @@ class SecretsPlugin : Plugin<Project> {
         // variant name is distinct from both buildType and flavorName (Issue #59).
         val variantName = variant.name
         if (variantName.isNotEmpty() && variantName != buildType && variantName != flavorName) {
-            val variantFileName = "$variantName.properties"
-            val variantProperties = try {
-                project.loadRootOrModulePropertiesFile(variantFileName)
-            } catch (e: FileNotFoundException) {
-                null
-            }
-            variantProperties?.let {
+            project.loadOptionalVariantProperties("$variantName.properties")?.let {
                 variant.injectWithTestComponents(it, extension.ignoreList, injectBuildConfig)
             }
+        }
+    }
+
+    private fun Project.loadOptionalVariantProperties(fileName: String): Properties? {
+        return try {
+            loadRootOrModulePropertiesFile(fileName)
+        } catch (_: FileNotFoundException) {
+            null
         }
     }
 
@@ -162,6 +166,10 @@ class SecretsPlugin : Plugin<Project> {
      * Injects secrets into both the main [Variant] and its nested [TestComponent]s (`UnitTest`
      * and `AndroidTest`) so test manifest merging resolves all `${...}` placeholders (Issue #41,
      * PR #107).
+     *
+     * Guards `nestedComponents` against [LinkageError] (`NoSuchMethodError`) on AGP 8.0–8.2 where
+     * `Variant.getNestedComponents()` did not yet exist, falling back to [HasUnitTest] and
+     * [HasAndroidTest].
      */
     private fun Variant.injectWithTestComponents(
         properties: Properties,
@@ -170,7 +178,12 @@ class SecretsPlugin : Plugin<Project> {
     ) {
         inject(properties, ignore, injectBuildConfig)
         val testComponents = buildSet {
-            addAll(nestedComponents.filterIsInstance<TestComponent>())
+            val nested = try {
+                nestedComponents.filterIsInstance<TestComponent>()
+            } catch (_: LinkageError) {
+                emptyList()
+            }
+            addAll(nested)
             (this@injectWithTestComponents as? HasUnitTest)?.unitTest?.let(::add)
             (this@injectWithTestComponents as? HasAndroidTest)?.androidTest?.let(::add)
         }

@@ -15,18 +15,19 @@
 package com.google.android.libraries.mapsplatform.secrets_gradle_plugin
 
 import com.android.build.api.AndroidPluginVersion
+import com.android.build.api.component.UnitTest as ComponentUnitTest
 import com.android.build.api.dsl.BuildFeatures
 import com.android.build.api.dsl.CommonExtension
 import com.android.build.api.variant.AndroidComponentsExtension
 import com.android.build.api.variant.AndroidTest
 import com.android.build.api.variant.ApplicationVariant
 import com.android.build.api.variant.BuildConfigField
+import com.android.build.api.variant.HasAndroidTest
+import com.android.build.api.variant.HasUnitTest
 import com.android.build.api.variant.TestComponent
 import com.android.build.api.variant.UnitTest
 import com.android.build.api.variant.Variant
 import com.android.build.api.variant.VariantSelector
-import org.gradle.api.Action
-import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.testfixtures.ProjectBuilder
 import org.junit.Assert.assertEquals
@@ -37,9 +38,9 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
-import org.mockito.kotlin.any
 import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.argumentCaptor
+import org.mockito.kotlin.doAnswer
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
@@ -90,6 +91,34 @@ class SecretsPluginTest {
 
         val properties = project.loadRootOrModulePropertiesFile("module-secrets.properties")
         assertEquals("moduleSecretValue", properties.getProperty("MODULE_KEY"))
+    }
+
+    @Test
+    fun `module local properties file merges over root properties file when both exist`() {
+        tempFolder.newFile("local.properties").writeText(
+            """
+            sdk.dir=/android/sdk
+            SHARED_KEY=fromRoot
+            ROOT_ONLY_KEY=rootValue
+            """.trimIndent()
+        )
+        project.projectDir.resolve("local.properties").writeText(
+            """
+            SHARED_KEY=fromModule
+            MODULE_ONLY_KEY=moduleValue
+            """.trimIndent()
+        )
+
+        val properties = project.loadRootOrModulePropertiesFile("local.properties")
+        assertEquals("rootValue", properties.getProperty("ROOT_ONLY_KEY"))
+        assertEquals("fromModule", properties.getProperty("SHARED_KEY"))
+        assertEquals("moduleValue", properties.getProperty("MODULE_ONLY_KEY"))
+    }
+
+    @Test(expected = FileNotFoundException::class)
+    fun `directory with same name as properties file is ignored and throws FileNotFoundException`() {
+        tempFolder.newFolder("directory.properties")
+        project.loadRootOrModulePropertiesFile("directory.properties")
     }
 
     @Test
@@ -170,6 +199,38 @@ class SecretsPluginTest {
     }
 
     @Test
+    fun `isBuildConfigEnabled respects DSL, gradle property on AGP 8, and version defaults on AGP 7, 8, and 9`() {
+        val agp7 = mock<AndroidComponentsExtension<*, *, *>> {
+            on { pluginVersion } doReturn AndroidPluginVersion(7, 4)
+        }
+        val agp8 = mock<AndroidComponentsExtension<*, *, *>> {
+            on { pluginVersion } doReturn AndroidPluginVersion(8, 2)
+        }
+        val agp9 = mock<AndroidComponentsExtension<*, *, *>> {
+            on { pluginVersion } doReturn AndroidPluginVersion(9, 0)
+        }
+
+        // 1. Default when neither DSL nor gradle.properties is set: true on AGP 7.x, false on AGP 8.x/9.x
+        assertTrue(project.isBuildConfigEnabled(agp7))
+        assertFalse(project.isBuildConfigEnabled(agp8))
+        assertFalse(project.isBuildConfigEnabled(agp9))
+
+        // 2. Explicit DSL setting overrides version defaults
+        val buildFeatures = mock<BuildFeatures> {
+            on { buildConfig } doReturn true
+        }
+        val commonExt = mock<CommonExtension<*, *, *, *, *, *>> {
+            on { this.buildFeatures } doReturn buildFeatures
+        }
+        project.extensions.add(CommonExtension::class.java, "android", commonExt)
+        assertTrue(project.isBuildConfigEnabled(agp8))
+        assertTrue(project.isBuildConfigEnabled(agp9))
+
+        whenever(buildFeatures.buildConfig).thenReturn(false)
+        assertFalse(project.isBuildConfigEnabled(agp7))
+    }
+
+    @Test
     fun `properties are correctly added`() {
         val fileName = "local.properties"
         val propertiesFile = tempFolder.newFile(fileName)
@@ -190,13 +251,14 @@ class SecretsPluginTest {
     }
 
     @Test
-    fun `invalid characters are removed`() {
+    fun `invalid characters are removed and leading digit keys are excluded from BuildConfig only`() {
         val fileName = "local.properties"
         val propertiesFile = tempFolder.newFile(fileName)
         propertiesFile.writeText(
             """
             sdk.Dir="value"
             sdk.Foo!="value2"
+            123numericKey="numericValue"
             """.trimIndent()
         )
         val properties = project.loadRootOrModulePropertiesFile(fileName)
@@ -207,6 +269,8 @@ class SecretsPluginTest {
             Pair("sdkDir", "value"),
             Pair("sdkFoo", "value2")
         )
+        assertEquals("numericValue", variant.manifestPlaceholders.getting("123numericKey").get())
+        assertNull(variant.buildConfigFields!!.getting("123numericKey").orNull)
     }
 
     @Test
@@ -250,12 +314,14 @@ class SecretsPluginTest {
     }
 
     @Test
-    fun `windows paths with backslashes are escaped for BuildConfig`() {
+    fun `windows paths and strings with internal quotes are escaped for BuildConfig`() {
         val fileName = "local.properties"
         val propertiesFile = tempFolder.newFile(fileName)
         propertiesFile.writeText(
             """
             flutter.sdk=C\:\\Users\\dev\\flutter
+            quoted.sdk="C\:\\Users\\dev\\flutter"
+            json.config={"env":"prod","debug":false}
             """.trimIndent()
         )
         val properties = project.loadRootOrModulePropertiesFile(fileName)
@@ -267,10 +333,25 @@ class SecretsPluginTest {
             "\"C:\\\\Users\\\\dev\\\\flutter\"",
             variant.buildConfigFields!!.getting("fluttersdk").get().value
         )
+        assertEquals("C:\\Users\\dev\\flutter", variant.manifestPlaceholders.getting("quotedsdk").get())
+        assertEquals(
+            "\"C:\\\\Users\\\\dev\\\\flutter\"",
+            variant.buildConfigFields!!.getting("quotedsdk").get().value
+        )
+        assertEquals("{\"env\":\"prod\",\"debug\":false}", variant.manifestPlaceholders.getting("jsonconfig").get())
+        assertEquals(
+            "\"{\\\"env\\\":\\\"prod\\\",\\\"debug\\\":false}\"",
+            variant.buildConfigFields!!.getting("jsonconfig").get().value
+        )
+        // Also verify direct invocation on a quoted string containing unescaped backslashes
+        assertEquals(
+            "\"C:\\\\Users\\\\dev\"",
+            "\"C:\\Users\\dev\"".addParenthesisIfNeeded()
+        )
     }
 
     @Test
-    fun `plugin applied before Android plugin still configures variants and test components`() {
+    fun `plugin applied before Android plugin configures multi-dimension flavors and falls back when nestedComponents throws NoSuchMethodError`() {
         tempFolder.newFile("defaults.properties").writeText(
             """
             kDefault=fromDefault
@@ -286,27 +367,36 @@ class SecretsPluginTest {
         tempFolder.newFile("debug.properties").writeText(
             """
             kBuildType=fromDebug
-            kFlavor=fromDebug
+            kDimensionTier=fromDebug
             """.trimIndent()
         )
         tempFolder.newFile("demo.properties").writeText(
             """
-            kFlavor=fromDemo
-            kVariant=fromDemo
+            kDimensionTier=fromDemo
+            kDimensionEnv=fromDemo
             """.trimIndent()
         )
-        tempFolder.newFile("demoDebug.properties").writeText(
+        tempFolder.newFile("staging.properties").writeText(
             """
-            kVariant=fromDemoDebug
+            kDimensionEnv=fromStaging
+            kCombinedFlavor=fromStaging
+            """.trimIndent()
+        )
+        tempFolder.newFile("demoStaging.properties").writeText(
+            """
+            kCombinedFlavor=fromDemoStaging
+            kVariant=fromDemoStaging
+            """.trimIndent()
+        )
+        tempFolder.newFile("demoStagingDebug.properties").writeText(
+            """
+            kVariant=fromDemoStagingDebug
             """.trimIndent()
         )
 
-        // Apply SecretsPlugin BEFORE applying an Android plugin (Issue #62).
-        project.pluginManager.apply(SecretsPlugin::class.java)
         val extension = project.extensions.getByType(SecretsPluginExtension::class.java)
         extension.defaultPropertiesFileName = "defaults.properties"
 
-        // Register mock androidComponents and android extensions and apply dummy com.android.test plugin (#91).
         val selector = mock<VariantSelector>()
         whenever(selector.all()).thenReturn(selector)
         val androidComponents = mock<AndroidComponentsExtension<*, *, Variant>> {
@@ -322,13 +412,13 @@ class SecretsPluginTest {
         project.extensions.add(AndroidComponentsExtension::class.java, "androidComponents", androidComponents)
         project.extensions.add(CommonExtension::class.java, "android", commonExtension)
 
-        // Configure variants via SecretsPlugin (real plugin ordering and com.android.test are verified in SecretsPluginFunctionalTest).
         SecretsPlugin().configureVariants(project, extension, androidComponents)
 
         val callbackCaptor = argumentCaptor<(Variant) -> Unit>()
         verify(androidComponents).onVariants(anyOrNull(), callbackCaptor.capture())
 
-        val unitTestComponent = mock<UnitTest> {
+        @Suppress("DEPRECATION")
+        val unitTestComponent = mock<ComponentUnitTest> {
             on { manifestPlaceholders } doReturn
                 project.objects.mapProperty(String::class.java, String::class.java)
         }
@@ -336,30 +426,39 @@ class SecretsPluginTest {
             on { manifestPlaceholders } doReturn
                 project.objects.mapProperty(String::class.java, String::class.java)
         }
-        val fullVariant = mock<ApplicationVariant> {
-            on { name } doReturn "demoDebug"
+
+        // Simulate an AGP 8.0-8.2 Variant where getNestedComponents() does not exist and throws
+        // NoSuchMethodError (a LinkageError), verifying fallback to HasUnitTest / HasAndroidTest.
+        val legacyVariant = mock<ApplicationVariant> {
+            on { name } doReturn "demoStagingDebug"
             on { buildType } doReturn "debug"
-            on { flavorName } doReturn "demo"
+            on { productFlavors } doReturn listOf("tier" to "demo", "env" to "staging")
+            on { flavorName } doReturn "demoStaging"
             on { buildConfigFields } doReturn
                 project.objects.mapProperty(String::class.java, BuildConfigField::class.java)
             on { manifestPlaceholders } doReturn
                 project.objects.mapProperty(String::class.java, String::class.java)
-            on { nestedComponents } doReturn listOf(unitTestComponent, androidTestComponent)
+            on { nestedComponents } doAnswer {
+                throw NoSuchMethodError("com.android.build.api.variant.Variant.getNestedComponents()")
+            }
             on { androidTest } doReturn androidTestComponent
         }
+        whenever((legacyVariant as HasUnitTest).unitTest).thenReturn(unitTestComponent)
 
-        callbackCaptor.firstValue.invoke(fullVariant)
+        callbackCaptor.firstValue.invoke(legacyVariant)
 
-        // Verify precedence: defaults < local < buildType < flavor < variantName (#59)
-        assertEquals("fromDefault", fullVariant.manifestPlaceholders.getting("kDefault").get())
-        assertEquals("fromLocal", fullVariant.manifestPlaceholders.getting("kOverride").get())
-        assertEquals("fromDebug", fullVariant.manifestPlaceholders.getting("kBuildType").get())
-        assertEquals("fromDemo", fullVariant.manifestPlaceholders.getting("kFlavor").get())
-        assertEquals("fromDemoDebug", fullVariant.manifestPlaceholders.getting("kVariant").get())
+        // Verify precedence: defaults < local < buildType < productFlavors (tier, env) < combined flavorName < variantName
+        assertEquals("fromDefault", legacyVariant.manifestPlaceholders.getting("kDefault").get())
+        assertEquals("fromLocal", legacyVariant.manifestPlaceholders.getting("kOverride").get())
+        assertEquals("fromDebug", legacyVariant.manifestPlaceholders.getting("kBuildType").get())
+        assertEquals("fromDemo", legacyVariant.manifestPlaceholders.getting("kDimensionTier").get())
+        assertEquals("fromStaging", legacyVariant.manifestPlaceholders.getting("kDimensionEnv").get())
+        assertEquals("fromDemoStaging", legacyVariant.manifestPlaceholders.getting("kCombinedFlavor").get())
+        assertEquals("fromDemoStagingDebug", legacyVariant.manifestPlaceholders.getting("kVariant").get())
 
-        // Verify both unitTest and androidTest components received manifest placeholders (#41, #89, #96, #104)
-        assertEquals("fromDemoDebug", unitTestComponent.manifestPlaceholders.getting("kVariant").get())
-        assertEquals("fromDemoDebug", androidTestComponent.manifestPlaceholders.getting("kVariant").get())
+        // Verify both unitTest and androidTest components received manifest placeholders via HasUnitTest/HasAndroidTest fallback
+        assertEquals("fromDemoStagingDebug", unitTestComponent.manifestPlaceholders.getting("kVariant").get())
+        assertEquals("fromDemoStagingDebug", androidTestComponent.manifestPlaceholders.getting("kVariant").get())
     }
 
     private fun check(vararg keyValues: Pair<String, String>) {
