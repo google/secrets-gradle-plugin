@@ -9,3 +9,5 @@
 .cxx
 local.properties
 .java-version
+.kotlin/
+gradle/gradle-daemon-jvm.properties

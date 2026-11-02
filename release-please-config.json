@@ -1,0 +1,11 @@
+{
+  "packages": {
+    ".": {
+      "release-type": "simple",
+      "extra-files": [
+        "secrets-gradle-plugin/build.gradle.kts",
+        "README.md"
+      ]
+    }
+  }
+}
